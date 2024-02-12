@@ -15,7 +15,7 @@ def main(n_disks, r_disk, L, plot=False):
 
     # Modify lengths
     lengths = DiskEnergyCalculator.ProteinAnalyzer.map_many_combinations(combinations, n_disks)
-    modified_lengths = DiskEnergyCalculator.ProteinAnalyzer.modify_many_lengths(lengths)
+    # modified_lengths = DiskEnergyCalculator.ProteinAnalyzer.modify_many_lengths(lengths)
      
     # Optimize structures and log energies
     n = 1
@@ -35,7 +35,8 @@ def main(n_disks, r_disk, L, plot=False):
             sys.stdout.write(f"Lengths: {mod_lengths}\n")
             sys.stdout.write(f"Minimizing energy for structure {n}\n")
 
-            F_tot = DiskEnergyCalculator.calc_comb_energy(modified_lengths[i], n_disks)
+            # F_tot = DiskEnergyCalculator.calc_comb_energy(modified_lengths[i], n_disks)
+            F_tot = DiskEnergyCalculator.calc_comb_energy(mod_lengths, L=2)
             sys.stdout.write(f"Calculated F_tot for single combination, {F_tot}\n")
 
             sys.stdout.write("Placed points on circle.\n")
@@ -54,7 +55,7 @@ def main(n_disks, r_disk, L, plot=False):
             sim = PolygonSpringSimulation(vertices=points,
                                           ideal_distances=mod_lengths,
                                           ideal_angles=[ideal_angle] * len(mod_lengths),
-                                          k_angle=k_angle, k_edges=25, max_steps=1000, dt=0.01,
+                                          k_angle=k_angle, k_edges=50, max_steps=1000, dt=0.01,
                                           optimizer="gd",
                                           log_energy=log_energy, log_geom=log_geom
                                           )

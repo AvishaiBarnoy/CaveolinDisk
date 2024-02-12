@@ -237,12 +237,15 @@ class DiskEnergyCalculator:
         return points
 
 if __name__ == "__main__":
-    e_tot = DiskEnergyCalculator.F_tot
-    assert round(e_tot(L=2),3) == -0.242
+    assert round(DiskEnergyCalculator.F_tot(L=2),3) == -0.242
     
     lengths = [14, 4, 14, 4, 14, 4]
     e_lengths = DiskEnergyCalculator.calc_comb_energy(lengths)
     assert round(e_lengths / 3, 3) == -0.242
+    
+    lengths = [14, 4, 70, 4, 70, 4, 84, 4]
+    e_lengths = DiskEnergyCalculator.calc_comb_energy(lengths)
+    print(lengths, '\n', e_lengths)
 
     combinations = [[1, 2, 3], [1, 2, 4], [2, 3, 4], [1, 2, 3, 4]]
     lengths = DiskEnergyCalculator.ProteinAnalyzer.map_many_combinations(combinations, 4)
@@ -252,7 +255,6 @@ if __name__ == "__main__":
     
     lengths = [[1, 1, 2], [1, 2, 1], [1, 1, 2], [1, 1, 1, 1]]
     modified_lengths = DiskEnergyCalculator.ProteinAnalyzer.modify_many_lengths(lengths, disk_radius=7, L=2)
-    # print(modified_lengths)
 
     combination = DiskEnergyCalculator.ProteinConfiguration([1, 2, 6, 12], 17)
     length = combination.map_combination_to_lengths()
