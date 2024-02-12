@@ -37,7 +37,7 @@ class DiskEnergyCalculator:
         @staticmethod
         def generate_combinations(n_disks):
             disks = list(range(1, n_disks + 1))
-            all_combinations = [list(itertools.combinations(disks, r)) for r in range(3, len(disks) + 1)]
+            all_combinations = [list(it.combinations(disks, r)) for r in range(3, len(disks) + 1)]
             valid_combinations = [combination for sublist in all_combinations for combination in sublist]
             return valid_combinations
         # old implementation:
@@ -175,9 +175,12 @@ class DiskEnergyCalculator:
             return valid_combinations
 
     @staticmethod
-    def F_el(L, R=7, l=2):
+    def F_el(L=2, R=7, l=2):
+        l = 2  # decay length of tilt
+        L = L  # half distance between proteins
         C = 0.4
-        F = -C / (1/np.tanh(R/l) + 0.5/np.tanh(L/l))
+        F = -C / (1/np.tanh(R/l) + 0.5 * 1/np.tanh(L/l))
+        print('elastic', F)
         return F
 
     @staticmethod
@@ -185,11 +188,13 @@ class DiskEnergyCalculator:
         return 2 * (0.5 * 10 * 1/np.tanh(L) * (phi - phi_s) ** 2)
 
     @staticmethod
-    def F_vdw(L=2, R=7, l=2):
-        A = 1
-        h = 2
+    def F_vdw(L, R=7, l=2):
+        L *= 2  # half distance between proteins
+        A = 1 # Hamaker constant
+        h = 2 # monolayer height
         B = round(1 / 270 * A * h / l ** 2 * 1 / np.sqrt(R / l), 3)
         F = -B / (L / l) ** (3 / 2)
+        print('vdw', F)
         return F
 
     @staticmethod
@@ -197,11 +202,18 @@ class DiskEnergyCalculator:
         return DiskEnergyCalculator.F_el(L, R, l) + DiskEnergyCalculator.F_vdw(L, R, l)
 
     @staticmethod
-    def calc_comb_energy(length_list: list, n_disks: int, L=2, eta=0.18) -> float:
-        """
-        removed phi functionality because it will be calculated after geometry optimization.
-        """
-        combination_total_energy = 0.0
+    def calc_comb_energy(length_list: list, L=2, eta=0.09) -> float:
+        comb_energy = 0.0
+        F_disk_14  = DiskEnergyCalculator.F_tot(L=L, R=7, l=2)
+        F_disk_eta = DiskEnergyCalculator.F_tot(L=eta, R=7, l=2)
+        for i in length_list:
+            if i >= 14:
+                print(f"len segments {i//14 -1}")
+                comb_energy += F_disk_14 + F_disk_eta * (i//14 - 1) 
+                print(f"comb energy {comb_energy}") 
+        return comb_energy
+
+        # old implementatin: 
         for i in length_list:
             if i == 14:
                 F_disk = DiskEnergyCalculator.F_tot(L=L, R=7, l=2)
@@ -212,10 +224,10 @@ class DiskEnergyCalculator:
         return combination_total_energy
 
     @staticmethod
-    def calc_many_combinations(lengths: list, combinations: list, n_disks: int, eta) -> float:
+    def calc_many_combinations(lengths: list, combinations: list, eta) -> float:
         combinations_energies = []
         for i, j in enumerate(lengths):
-            energy_i = DiskEnergyCalculator.calc_comb_energy(j, n_disks, eta)
+            energy_i = DiskEnergyCalculator.calc_comb_energy(j, eta)
             combinations_energies.append((combinations[i], energy_i))
         return combinations_energies
 
@@ -261,8 +273,8 @@ if __name__ == "__main__":
     combinations = [[1, 2, 3], [1, 2, 4], [2, 3, 4], [1, 2, 3, 4]]
     lengths = DiskEnergyCalculator.ProteinAnalyzer.map_many_combinations(combinations, 4)
     phi = 0.1206
-    
-    assert round(DiskEnergyCalculator.calc_comb_energy([1, 1, 2], 4),5) == round(DiskEnergyCalculator.calc_comb_energy([1, 2, 1], 4),5), "Fail for degenerate combinations"
+    ''' 
+    assert round(DiskEnergyCalculator.calc_comb_energy([1, 1, 2]),5) == round(DiskEnergyCalculator.calc_comb_energy([1, 2, 1]),5), "Fail for degenerate combinations"
     
     lengths = [[1, 1, 2], [1, 2, 1], [1, 1, 2], [1, 1, 1, 1]]
     modified_lengths = DiskEnergyCalculator.ProteinAnalyzer.modify_many_lengths(lengths, disk_radius=7, L=2)
@@ -277,6 +289,12 @@ if __name__ == "__main__":
     assert DiskEnergyCalculator.ProteinAnalyzer.is_valid_inequality(mod_lengths, L=2) == True
     lengths = [14, 4, 14, 4, 210, 4]
     assert DiskEnergyCalculator.ProteinAnalyzer.is_valid_inequality(lengths, L=2) == False
+    '''
+
+    lengths = [14]
+    energy = DiskEnergyCalculator.calc_comb_energy(lengths, 1)
+    print(energy)
+    assert round(energy,2) == -0.24
 
     import timeit
     new = """

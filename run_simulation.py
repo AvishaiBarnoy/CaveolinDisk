@@ -27,31 +27,24 @@ def main(n_disks, r_disk, L, plot=False):
             
             if DiskEnergyCalculator.ProteinAnalyzer.is_valid_inequality(mod_lengths, L=2) == False:
                 continue
-            sys.stdout.write(f"Lengths: {mod_lengths}\n")
             
             points = np.array(DiskEnergyCalculator.calculate_circle_points(mod_lengths))
             if len(points) == 0:
                 continue
 
+            sys.stdout.write(f"Lengths: {mod_lengths}\n")
+            sys.stdout.write(f"Minimizing energy for structure {n}\n")
+
             F_tot = DiskEnergyCalculator.calc_comb_energy(modified_lengths[i], n_disks)
             sys.stdout.write(f"Calculated F_tot for single combination, {F_tot}\n")
 
-            if plotting == True:
-                points = list(points)
-                points.append(points[0])    
-                plt.scatter(*zip(*points))
-                circle = plt.Circle((0, 0), 105, edgecolor='black', fc='white', alpha=0.3)
-                plt.gca().add_patch(circle)
-                plt.show()
-
             sys.stdout.write("Placed points on circle.\n")
-            log_geom = f"log_geom_{n}.txt"
-            log_energy = f"log_energy_{n}.txt"
+            log_geom = f"results/log_geom_{n}.txt"
+            log_energy = f"results/log_energy_{n}.txt"
 
             k_angle = 2 * (0.5 * 10 * 1/np.tanh(L))
             visualize = False
 
-            sys.stdout.write(f"Minimizing energy for structure {n}\n")
 
             # ideal_angle = h/a*de*1/np.sqrt(k*k_t)*1/(1/np.tanh(R/l)+0.5/np.tanh(L/l)) # absolute value
             ideal_phi = 0.2 * 1/(1/np.tanh(7/3.5) + 0.5 / np.tanh(1))  # absolute value
