@@ -79,14 +79,14 @@ class TestDiskEnergyCalculator(unittest.TestCase):
 
     def test_cyclic_filter(self):
         # Define some sample data
-        combinations = [[1, 3, 5, 6], [2, 4, 6, 8], [3, 6, 9, 12]]
-        n_disks = 4
+        combinations = [[1, 3, 5, 6], [1, 4, 6, 8], [1, 13, 15, 17]]
+        n_disks = 17
 
         # Call the function under test
         filtered_combinations = DiskEnergyCalculator.ProteinAnalyzer.cyclic_filter(combinations, n_disks)
 
         # Define the expected output after filtering
-        expected_filtered_combinations = [[1, 3, 5, 6], [2, 4, 6, 8]]
+        expected_filtered_combinations = [[1, 3, 5, 6], [1, 4, 6, 8]]
 
         # Assert that the filtered combinations match the expected output
         self.assertEqual(filtered_combinations, expected_filtered_combinations)
@@ -113,17 +113,17 @@ class TestDiskEnergyCalculator(unittest.TestCase):
         # The result should be the same as the input since there are no cyclic duplicates
         self.assertEqual(filtered_combinations, combinations)
 
-    def test_cyclic_filter_duplicates(self):
-        # Test with duplicate combinations
-        combinations = [[1, 2, 3, 4], [1, 3, 2, 4], [4, 3, 2, 1]]
-        n_disks = 4
+    def test_cyclic_filter_mirror(self):
+        # Test with mirror combinations
+        combinations = [[1, 2, 4, 7], [1, 2, 3, 5], [1, 2, 4, 5], [1, 3, 4, 5], [1, 4, 5, 6]]
+        n_disks = 7
 
         # Call the function under test
         filtered_combinations = DiskEnergyCalculator.ProteinAnalyzer.cyclic_filter(combinations, n_disks)
-
+        print(filtered_combinations)
         # The result should contain only one unique combination
-        self.assertEqual(len(filtered_combinations), 1)
-        self.assertEqual(filtered_combinations[0], [1, 2, 3, 4])
+        self.assertEqual(len(filtered_combinations), 2)
+        self.assertEqual(filtered_combinations, [[1, 2, 4, 7], [1, 2, 4, 5]])
 
 
 if __name__ == '__main__':

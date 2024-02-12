@@ -116,18 +116,6 @@ class DiskEnergyCalculator:
             return True
 
         @staticmethod
-        def rotate_list(combination):
-            """
-            Warning: Depracted 
-            Rotate a list until it returns to its original configuration.
-            """
-            rotations = [combination]
-            for _ in range(1, len(combination)):
-                combination = combination[1:] + [combination[0]]
-                rotations.append(combination)
-            return rotations
-
-        @staticmethod
         def cyclic_filter(combinations, n_disks):
             """
             Takes combinations, converts to lengths, and removes cyclic degenerate combinations
@@ -166,62 +154,41 @@ class DiskEnergyCalculator:
             valid_combinations = []
             combinations = [] 
             for combination in combinations:
-                if combination[0] == 1:
-                    if DiskEnergyCalculator.ProteinAnalyzer.is_valid_inequality(length_list, L):
-                        valid_combinations.append(combination)
+                if DiskEnergyCalculator.ProteinAnalyzer.is_valid_inequality(length_list, L) and combination[0] == 1:
+                    valid_combinations.append(combination)
 
             valid_combinations = DiskEnergyCalculator.ProteinAnalyzer.cyclic_filter(valid_combinations, n_disks)
 
             return valid_combinations
 
     @staticmethod
-    def F_el(L=2, R=7, l=2):
-        l = 2  # decay length of tilt
-        L = L  # half distance between proteins
-        C = 0.4
-        F = -C / (1/np.tanh(R/l) + 0.5 * 1/np.tanh(L/l))
-        print('elastic', F)
-        return F
-
-    @staticmethod
     def F_dev(L, phi, phi_s):
         return 2 * (0.5 * 10 * 1/np.tanh(L) * (phi - phi_s) ** 2)
 
     @staticmethod
-    def F_vdw(L, R=7, l=2):
-        L *= 2  # half distance between proteins
-        A = 1 # Hamaker constant
-        h = 2 # monolayer height
-        B = round(1 / 270 * A * h / l ** 2 * 1 / np.sqrt(R / l), 3)
-        F = -B / (L / l) ** (3 / 2)
-        print('vdw', F)
-        return F
-
-    @staticmethod
-    def F_tot(L, R, l=2):
-        return DiskEnergyCalculator.F_el(L, R, l) + DiskEnergyCalculator.F_vdw(L, R, l)
+    def F_tot(L, R=7, l=2):
+        # VdW energy
+        A = 1  # Hamaker constant   [kT]
+        h = 2  # monolayer height   [nm]
+        B = 1 / 270 * A * h / l ** 2 * 1 / np.sqrt(R / l)
+        F_vdw = - B / (L*2 / l) ** (3/2)
+        
+        # Elastic energy TODO: explicit C
+        C = 0.4
+        F_el = - C / (1/np.tanh(R/l) + 0.5 / np.tanh(L/l))
+        return F_vdw + F_el
 
     @staticmethod
     def calc_comb_energy(length_list: list, L=2, eta=0.09) -> float:
-        comb_energy = 0.0
-        F_disk_14  = DiskEnergyCalculator.F_tot(L=L, R=7, l=2)
-        F_disk_eta = DiskEnergyCalculator.F_tot(L=eta, R=7, l=2)
-        for i in length_list:
-            if i >= 14:
-                print(f"len segments {i//14 -1}")
-                comb_energy += F_disk_14 + F_disk_eta * (i//14 - 1) 
-                print(f"comb energy {comb_energy}") 
-        return comb_energy
+        comb_tot_energy = 0.0
 
-        # old implementatin: 
-        for i in length_list:
-            if i == 14:
-                F_disk = DiskEnergyCalculator.F_tot(L=L, R=7, l=2)
-                combination_total_energy += F_disk
-            elif i > 14:
-                F_disks = DiskEnergyCalculator.F_tot(L=L, R=7, l=2) + DiskEnergyCalculator.F_tot(L=eta, R=7, l=2) * (i - 1)
-                combination_total_energy += F_disks
-        return combination_total_energy
+        length_list = np.array(length_list) // 14
+        non_zero = np.count_nonzero(length_list)
+        comb_tot_energy += non_zero * DiskEnergyCalculator.F_tot(L=2)
+        
+        n_close_inter = length_list[length_list != 0] - 1
+        comb_tot_energy += n_close_inter.sum() * DiskEnergyCalculator.F_tot(L=eta/2)
+        return comb_tot_energy
 
     @staticmethod
     def calc_many_combinations(lengths: list, combinations: list, eta) -> float:
@@ -270,10 +237,17 @@ class DiskEnergyCalculator:
         return points
 
 if __name__ == "__main__":
+    e_tot = DiskEnergyCalculator.F_tot
+    assert round(e_tot(L=2),3) == -0.242
+    
+    lengths = [14, 4, 14, 4, 14, 4]
+    e_lengths = DiskEnergyCalculator.calc_comb_energy(lengths)
+    assert round(e_lengths / 3, 3) == -0.242
+
     combinations = [[1, 2, 3], [1, 2, 4], [2, 3, 4], [1, 2, 3, 4]]
     lengths = DiskEnergyCalculator.ProteinAnalyzer.map_many_combinations(combinations, 4)
     phi = 0.1206
-    ''' 
+
     assert round(DiskEnergyCalculator.calc_comb_energy([1, 1, 2]),5) == round(DiskEnergyCalculator.calc_comb_energy([1, 2, 1]),5), "Fail for degenerate combinations"
     
     lengths = [[1, 1, 2], [1, 2, 1], [1, 1, 2], [1, 1, 1, 1]]
@@ -289,42 +263,3 @@ if __name__ == "__main__":
     assert DiskEnergyCalculator.ProteinAnalyzer.is_valid_inequality(mod_lengths, L=2) == True
     lengths = [14, 4, 14, 4, 210, 4]
     assert DiskEnergyCalculator.ProteinAnalyzer.is_valid_inequality(lengths, L=2) == False
-    '''
-
-    lengths = [14]
-    energy = DiskEnergyCalculator.calc_comb_energy(lengths, 1)
-    print(energy)
-    assert round(energy,2) == -0.24
-
-    import timeit
-    new = """
-def is_valid_inequality(length_list: list, L=2):
-    total_length = sum(length_list)
-    for i in length_list:
-        sum_lengths = 0.5 * (total_length - i)
-        if i > sum_lengths:
-            return False
-    return True
-lengths = [14, 4, 56, 4, 84, 4, 84, 4]
-is_valid_inequality(lengths)
-lengths = [14, 4, 14, 4, 210, 4]
-is_valid_inequality(lengths)
-"""
-
-    old = """
-def is_valid_inequality(length_list: list, L=2):
-    for i in length_list:
-        sum_lengths = 0.5 * (sum(length_list) - i)
-        if i <= sum_lengths - i:
-            pass
-        elif i > sum_lengths:
-            return False
-    return True
-lengths = [14, 4, 56, 4, 84, 4, 84, 4]
-is_valid_inequality(lengths)
-lengths = [14, 4, 14, 4, 210, 4]
-is_valid_inequality(lengths)
-"""
-
-    # print("new:", timeit.timeit(new, number = 100000))
-    # print("old:", timeit.timeit(old, number = 100000))
