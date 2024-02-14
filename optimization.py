@@ -4,7 +4,7 @@ from matplotlib.animation import FuncAnimation
 from scipy.optimize import minimize
 import sys
 
-class PolygonSpringSimulation:
+class Optimization:
     def __init__(self, vertices, ideal_distances, ideal_angles, k_angle, k_edges, max_steps=200, dt=0.1,
             optimizer="gd", use_adam_optimizer=False,
             log_energy=None, log_geom=None, n_geom=10):
@@ -18,7 +18,6 @@ class PolygonSpringSimulation:
         self.dt = dt
         self.optimizer = optimizer
         self.current_step = 0
-        self.last_energy = None
         self.log_energy = log_energy
         self.log_geom = log_geom
         self.n_geom = n_geom
@@ -50,10 +49,6 @@ class PolygonSpringSimulation:
             ideal_angle = self.ideal_angles[i]
             energy += self.k_angle * (angle - ideal_angle) ** 2
         
-        # print last energy value
-        if self.current_step == self.max_steps:
-            sys.stdout.write(f"Final energy: {energy}\n")
-
         return energy
 
     def calculate_angle(self, prev_point, current_point, next_point):
@@ -65,7 +60,7 @@ class PolygonSpringSimulation:
         return angle
 
     def bfgs_optimizer(self):
-        result = minimize(self.calculate_energy, self.vertices, method='BFGS', jac=False, options={'disp':True})
+        result = minimize(self.calculate_energy, self.vertices.flatten(), method='BFGS', jac=False, options={'disp':True})
         # self.vertices = result.x.reshape((self.num_vertices, 2))
         self.vertices = result.x.reshape((self.num_vertices, 2))
         return self.vertices 
@@ -140,11 +135,24 @@ class PolygonSpringSimulation:
             sys.exit("Illegal optimizer")
 
         self.current_step += 1
-        # Log to file every n_geom steps, default 10
+        energy = round(self.calculate_energy(self.vertices), 8)
+        grad = None
+        # also log gradient
+        if self.optimizer.lower()  == 'gd':
+            grad = sum(self.calculate_gradient())
+        # Log to file every n_geom steps, default 100
         if self.log_geom and self.current_step % self.n_geom == 0:
             with open(self.log_geom, 'a') as f:
-                f.write(f"n={self.current_step},\t e={round(self.calculate_energy(self.vertices),8)}\n")
+                f.write(f"n={self.current_step}\t e={energy}\t grad={grad}\n")
                 np.savetxt(f, self.vertices)
+        # log step and energy
+        if self.log_energy:
+            with open(self.log_energy, 'a') as f:
+                f.write(f"n={self.current_step}\t e={energy}\t grad={grad}\n")
+
+        # print last energy value
+        if self.current_step == self.max_steps:
+            sys.stdout.write(f"Final energy: {energy}\n")
 
     def should_stop(self):
         if self.current_step >= self.max_steps:
@@ -163,7 +171,7 @@ class PolygonSpringSimulation:
             sys.stdout.write("Minimizing using force simulation\n")
 
 
-class PolygonSpringAnimation:
+class Animation:
     def __init__(self, sim):
         self.sim = sim
         self.fig, self.ax = plt.subplots()
@@ -196,10 +204,6 @@ class PolygonSpringAnimation:
             self.sim.vertices))
         self.energy_text.set_text(energy_text)
 
-        if self.sim.log_energy:
-            with open(self.sim.log_energy, 'a') as f:
-                f.write(f"n={self.sim.current_step},\t e={round(self.sim.calculate_energy(self.sim.vertices),8)}\n")
-
         return [self.lines, self.energy_text] + annotations
 
     def start_animation(self):
@@ -224,19 +228,19 @@ if __name__ == "__main__":
     # optimizer = "bfgs"
     optimizer = "gd"
     use_adam_optimizer = False 
-    log_energy = "logs/log_energy.txt"
-    log_geom = "logs/log_geom.txt"
+    log_energy = "results/log_energy.txt"
+    log_geom = "results/log_geom.txt"
     n_geom = 10
     
-    sim = PolygonSpringSimulation(vertices, ideal_distances, ideal_angles, k_angle, k_edges, max_steps, dt,
+    sim = Optimization(vertices, ideal_distances, ideal_angles, k_angle, k_edges, max_steps, dt,
             optimizer, use_adam_optimizer, log_energy, log_geom, n_geom)
     sim.log_std()
 
     # Toggle on/off the visualization by setting visualize=True or False
-    visualize = False
+    visualize = True 
 
     if visualize:
-        animation = PolygonSpringAnimation(sim)
+        animation = Animation(sim)
         animation.start_animation()
     else:
         while not sim.should_stop():
