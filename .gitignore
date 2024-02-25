@@ -1,6 +1,10 @@
-# data file
+# specific files
+.DS_Store
 results/
-analysis/geometries/
+analysis/
+*txt
+*log
+new_feature
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
