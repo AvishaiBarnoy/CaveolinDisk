@@ -12,9 +12,20 @@ class Combinatorics:
         all_combinations = [list(it.combinations(disks, r)) for r in range(3, len(disks) + 1)]
         self.raw_combinations = [combination for sublist in all_combinations for combination in sublist]
         return self.raw_combinations
+    
+    def partitions(n):
+        """
+        generates all unique integer partitions
+        """
+        if n == 0:
+            yield ()
+        else:
+            for i in range(1, n + 1):
+                for p in Combinatorics.partitions(n - i):
+                    yield(i,) + p
 
 class Combination:
-    def __init__(self, combination: list, n_disks: int, lengths=[],
+    def __init__(self, combination=[], n_disks=0, lengths=[],
                  mod_length=[], energy=0, points=[]):
         self.combination = combination
         self.n_disks = n_disks 
@@ -40,8 +51,6 @@ class Combination:
     
         if combination[0] != 1:
             self.lengths[-1] += combination[0] - 1
-        # print(self.combination, self.lengths)
-        # print(f"lengths {combination}\t{self.lengths}")
         assert sum(self.lengths) == self.n_disks, f"{self.lengths}, {self.n_disks}, something went wrong with conversion to length list"
         return self.lengths
     
@@ -52,27 +61,6 @@ class Combination:
         for l in self.lengths:
             self.mod_length.extend([l * disk_radius, L])
         return self.mod_length
-
-    def F_tot(self, L, R=7, l=2):
-        A = 1  
-        h = 2  
-        B = 1 / 270 * A * h / l ** 2 * 1 / np.sqrt(R / l)
-        F_vdw = - B / (L*2 / l) ** (3/2)
-        
-        C = 0.4
-        F_el = - C / (1/np.tanh(R/l) + 0.5 / np.tanh(L/l))
-        return F_vdw + F_el
-
-    def calc_comb_energy(self) -> float:
-        L = 2
-        eta = 0.09
-        length_list = np.array(self.mod_length) // 14
-        non_zero = np.count_nonzero(length_list)
-        self.energy += non_zero * self.F_tot(L=2)
-        
-        n_close_inter = length_list[length_list != 0] - 1
-        self.energy += n_close_inter.sum() * self.F_tot(L=eta)
-        return self.energy
 
     def is_valid_inequality(self, L=2) -> bool:
         total_length = sum(self.mod_length)
@@ -119,11 +107,12 @@ class Combination:
         return self.points
 
 class group_operations:
+    # TODO: possibly restrutcutre, though Combination class is for a specific combinatio
     @staticmethod
     def map_many_combinations(combinations: list, n_disks: int) -> list:
         lengths = [Combination(combination, n_disks).map_combination_to_lengths() for combination in combinations]
         return lengths
-        
+
     @staticmethod
     def cyclic_filter(combinations, n_disks):
         lengths = group_operations.map_many_combinations(combinations, n_disks)
@@ -141,47 +130,57 @@ class group_operations:
         return filtered
 
     @staticmethod
-    def filter_valid_combinations(combinations, length_list: list, n_disks: int, L=2) -> list:
-        valid_combinations = []
-        combinations = [] 
-        for combination in combinations:
-            if Combination.is_valid_inequality(length_list, L) and combination[0] == 1:
-                valid_combinations.append(combination)
+    def cyclic_partitions(lsts):
+        # TODO: should change to work on lengths and not on combinations
+        unique = set()
 
-        valid_combinations = group_operations.cyclic_filter(valid_combinations, n_disks)
+        # print(lsts, type(lsts))
+        lsts = [list(lst) for lst in lsts]
+        for sublist in lsts:
+            original_lst = tuple(sublist)
+        
+            rotations = []
+            sublist = list(sublist)
+            while True:
+                sublist = [sublist[-1]] + sublist[:-1]  # Rotate the list to the right
+                rotations.append(tuple(sublist))
+            
+                if tuple(sublist) in unique: # or tuple(sublist) == original_lst: # rotations:
+                    break
 
-        return valid_combinations
+                if tuple(sublist) == original_lst and len(rotations) > 1:
+                    unique.add(original_lst)
+                    break
+
+        return unique
 
     @staticmethod
-    def calc_many_combinations(lengths: list, combinations: list, eta) -> float:
-        combinations_energies = []
-        for i, j in enumerate(lengths):
-            energy_i = Combination.calc_comb_energy(j, eta)
-            combinations_energies.append((combinations[i], energy_i))
-        return combinations_energies
+    def filter_partitions(n):
+        """
+        filters partitions
+        """
+        partition_generator = Combinatorics.partitions(n) 
+        partition_count = 0 
+        partLen3 = []
+        while True:
+            try:
+                partition = next(partition_generator)
+                if partition == [2,2,2]:
+                    print("found [2,2,2]")
+                partition_count += 1
+                if len(partition) >= 3: # toss-out partitions shorter than 3 vertex 
+                    partLen3.append(partition)
+            except StopIteration:
+                break
+    
+        unique = []
+        for i in partLen3:
+            permutations = set(it.permutations(i))
+            sub_uniques = group_operations.cyclic_partitions(permutations)
+            unique.extend(sub_uniques)
+        return unique 
 
 if __name__ == "__main__":
-    # check energy of 1 protein
-    comb = Combination([1], n_disks=1)
-    lengths = comb.map_combination_to_lengths()
-    mod_length = comb.modify_one_length()
-    energy = comb.calc_comb_energy()
-    assert round(comb.energy,3) == -0.242
-   
-    # check energy of 3 proteins
-    comb = Combination([1,2,3], n_disks=3)
-    lengths = comb.map_combination_to_lengths()
-    mod_length = comb.modify_one_length()
-    energy_lengths = comb.calc_comb_energy()
-    assert round(energy_lengths / 3, 3) == -0.242
-    
-    comb = Combination(list(range(1,17)), n_disks=17)
-    comb.map_combination_to_lengths()
-    comb.modify_one_length()
-    comb.calc_comb_energy()
-    # print(comb.mod_length)
-    # print(comb.energy)
-
     # check conversion of combination and inequality
     comb = Combination([1, 2, 6, 12], 17)
     length = comb.map_combination_to_lengths()
@@ -202,8 +201,6 @@ if __name__ == "__main__":
     assert lengths == [[1, 1, 2], [1, 2, 1], [1, 1, 1, 1]]
     cyclic = group_operations.cyclic_filter(combinations, 4)
     assert cyclic == [[1,2,3], [1,2,3,4]]
-    # assert round(group_operations.calc_many_combinations(lengths, combinations)[0][1], 5) == round(group_operations.calc_many_combinations(lengths, combinations)[1][1], 5), "Fail for degenerate combinations"
-   
 
     print("Partition:")
     n = 17 
@@ -216,9 +213,6 @@ if __name__ == "__main__":
     
     cyclic = group_operations.cyclic_filter(filtered_combinations, n_disks=n)
     cyclic_lengths = group_operations.map_many_combinations(cyclic, n_disks=n)
-    # print(cyclic)
-    # print(cyclic_lengths)
-    # print(f"len cyclics {len(cyclic_lengths)}")
     
     cyclic_mod = []
     for i in cyclic:
@@ -232,10 +226,7 @@ if __name__ == "__main__":
         if len(i) == 13:
             dn4.append(i)
     for i in dn4:
-        # print(i)
         pass
-    # print(len(dn4))
-
     
     l = [28,4,28,4,14,4,14,4,14,4,14,4,28,4,28,4,14,4,14,4,14,4,14,4,14,4]
     comb = [1,3,5,6,7,8,9,11,13,14,15,16,17]
