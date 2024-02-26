@@ -73,6 +73,9 @@ estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm""")
             np.savetxt(f, points)
 
 if __name__ == "__main__":
+    # TODO: auto-choose n_disks from caveolae radius 
+    # TODO: input file format
+    # TODO: cli options
     n_disks = 11
     r_disk = 7
     L = 2
