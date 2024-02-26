@@ -5,6 +5,8 @@ analysis/
 *txt
 *log
 new_feature
+timing.py
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
