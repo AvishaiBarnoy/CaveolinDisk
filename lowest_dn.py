@@ -24,12 +24,12 @@ def calculate_angles(points):
 
 def angles_energy(file_path, k=1, ideal_angle=2.930):
     """
-    calculates energy of angles deviation from ideal angle 
+    calculates energy of angles deviation from ideal angle
     """
     # Your calculation logic here, this function should return a float
     geometry = np.loadtxt(file_path)
     angles = calculate_angles(geometry)
-    last_value = 0.5 * k * np.sum(np.power(angles - ideal_angle, 2)) 
+    last_value = 0.5 * k * np.sum(np.power(angles - ideal_angle, 2))
     # print(last_value)
     return last_value
 
@@ -66,18 +66,18 @@ def calc_ideal_angle(L, xi=2, R=7):
 
 if __name__ == "__main__":
     k = 1
-    L = 2
-    ideal_angle = np.pi - calc_ideal_angle(L, xi=2, R=7) 
-    
+    L = 5
+    ideal_angle = np.pi - calc_ideal_angle(L, xi=2, R=7)
+
     root_directory = os.getcwd()
     lowest_value, lowest_dir = find_lowest_value_directory(root_directory, k=k, ideal_angle=ideal_angle)
-    
+
     # can probably remove after automation works
     print(f"Ideal angle: {ideal_angle}, with kappa_tilde: {k}")
     print(f"Lowest value: {lowest_value}, found in directory: {lowest_dir}")
-    
+
     # copy geometry to analysis folder  
     os.system(f"cp {lowest_dir}/geom_opt.txt ../analysis/{root_directory[-4:]}.txt")
 
     # append energy to energy.py
-    os.system(f"echo {lowest_value} >> ../analysis/energies.txt") 
+    os.system(f"echo {lowest_value} >> ../analysis/e_values.txt")

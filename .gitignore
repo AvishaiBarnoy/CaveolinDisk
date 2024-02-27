@@ -1,7 +1,6 @@
 # specific files
 .DS_Store
 results/
-analysis/
 *txt
 *log
 new_feature

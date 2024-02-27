@@ -1,12 +1,15 @@
 #!/bin/bash
 
-for i in {0..7}
+SCRIPT=lowest_dn.py
+mkdir analysis
+
+for i in dn*  # {0..7}
 do 
-  cd dn0$i
-  cp ../lowest_dn.py
+  cd $i
+  cp ../$SCRIPT .
   pwd
-  python lowest_dn.py
+  python $SCRIPT 
   echo ""
-  rm -f lowest_dn.py
+  rm -f $SCRIPT 
   cd ..
 done

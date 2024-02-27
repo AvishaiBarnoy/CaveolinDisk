@@ -24,14 +24,14 @@ class GeometryOptimizer:
             distance = np.linalg.norm(vertices[next_vertex] - vertices[i])
             ideal_distance = self.ideal_distances[i]
             energy += self.k_edges * (distance - ideal_distance) ** 2
-        
+
         for i in range(self.num_vertices):
             prev_vertex = (i - 1) % self.num_vertices
             next_vertex = (i + 1) % self.num_vertices
             angle = self.calculate_angle(vertices[prev_vertex], vertices[i], vertices[next_vertex])
             ideal_angle = self.ideal_angles[i]
             energy += self.k_angle * (angle - ideal_angle) ** 2
-        
+
         return energy
 
     def calculate_angle(self, prev_point, current_point, next_point):
@@ -141,6 +141,11 @@ if __name__ == "__main__":
     filename=sys.argv[1]
     initial_geometry = np.loadtxt(filename)
 
+    n_disks = 11
+    r_disk = 7
+    # TODO: one source of truth input file all files read from
+    L = 1 # half-distance between proteins
+
     k_edges = 100.0
     k_angle = 1.0
 
@@ -148,27 +153,32 @@ if __name__ == "__main__":
     print("Combination:", extracted_list)
     ideal_distances = extracted_list
 
-    L = 2 # half-distance between proteins
     id_angle = np.pi - calc_ideal_angle(L, xi=2, R=7)
 
     ideal_angles = [id_angle] * len(ideal_distances)
     num_vertices = len(initial_geometry)
-    print(f"Ideal angle: {id_angle}") 
-    
+    print(f"Ideal angle: {id_angle}")
+
+    sys.stdout.write(f"""
+N proteins: {n_disks}
+protein radius: {r_disk} nm
+half-distance: {L} nm
+estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm""")
+
     optimizer = GeometryOptimizer(num_vertices, initial_geometry.flatten(), ideal_distances, ideal_angles, k_edges, k_angle)
     optimized_vertices, min_energy = optimizer.optimize_geometry()
     optimized_vertices = optimized_vertices.reshape((num_vertices, 2))
-    
+
     print("final angles:\n",calculate_angles(optimized_vertices))
     final_edges = calculate_edges(optimized_vertices)
     print(f"final edges ({len(final_edges)}):\n", final_edges)
-    
+
     output_file = "geom_opt.txt"
     with open(f"{output_file}", "w") as f:
-        first_line = f"# combination: {extracted_list}\n"  
+        first_line = f"# combination: {extracted_list}\n"
         f.write(first_line)
         np.savetxt(f, optimized_vertices)
-    
+
     visualize = False
     if visualize:
         plt.plot(*zip(*initial_geometry), 'o-', c='r', label='initia')

@@ -6,13 +6,13 @@ class Combinatorics:
     def __init__(self, n_disks, raw_combinations=[], disk_radius=7, L=2):
         self.n_disks = n_disks
         self.raw_combinations = []
-    
+
     def generate_combinations(self) -> list:
         disks = list(range(1, self.n_disks + 1))
         all_combinations = [list(it.combinations(disks, r)) for r in range(3, len(disks) + 1)]
         self.raw_combinations = [combination for sublist in all_combinations for combination in sublist]
         return self.raw_combinations
-    
+
     def partitions(n):
         """
         generates all unique integer partitions
@@ -28,14 +28,14 @@ class Combination:
     def __init__(self, combination=[], n_disks=0, lengths=[],
                  mod_length=[], energy=0, points=[]):
         self.combination = combination
-        self.n_disks = n_disks 
+        self.n_disks = n_disks
         self.lengths = lengths
         self.energy = energy
         self.mod_length = mod_length
         self.points = points
 
     def map_combination_to_lengths(self) -> list:
-        """ 
+        """
         takes combination [1, 3, 5, 6] and n_disks=6
         return length list unmodified [2, 2, 1, 1]
         """
@@ -43,18 +43,18 @@ class Combination:
         combination = np.array(self.combination)
         self.lengths = np.diff(combination).tolist()
         last_length = self.n_disks - combination[-1] + combination[0]
-    
+
         if combination[-1] == self.n_disks:
             self.lengths.append(1)
         else:
             self.lengths.append(last_length)
-    
+
         if combination[0] != 1:
             self.lengths[-1] += combination[0] - 1
         assert sum(self.lengths) == self.n_disks, f"{self.lengths}, {self.n_disks}, something went wrong with conversion to length list"
         return self.lengths
-    
-    def modify_one_length(self, disk_radius=7, L=2) -> list:
+
+    def modify_one_length(self, L, disk_radius=7) -> list:
         L *= 2
         disk_radius *= 2
         self.mod_length = []
@@ -69,7 +69,7 @@ class Combination:
             if i > sum_lengths:
                 return False
         return True
-    
+
     def check_circle(self, radius: float) -> float:
         sum_of_angles = 0
         for length in self.mod_length:
@@ -117,14 +117,14 @@ class group_operations:
     def cyclic_filter(combinations, n_disks):
         lengths = group_operations.map_many_combinations(combinations, n_disks)
         filtered = []
-        already = set()  
+        already = set()
 
         for i, length in enumerate(lengths):
             rotations = {tuple(length[j:] + length[:j]) for j in range(len(length))}
             mirror_rotations = {tuple(length[::-1][j:] + length[::-1][:j]) for j in range(len(length))}
-            all_rotations = rotations.union(mirror_rotations)  
+            all_rotations = rotations.union(mirror_rotations)
             if not any(rot in already for rot in all_rotations):
-                already.update(all_rotations)  
+                already.update(all_rotations)
                 filtered.append(combinations[i])
 
         return filtered
@@ -138,13 +138,13 @@ class group_operations:
         lsts = [list(lst) for lst in lsts]
         for sublist in lsts:
             original_lst = tuple(sublist)
-        
+
             rotations = []
             sublist = list(sublist)
             while True:
                 sublist = [sublist[-1]] + sublist[:-1]  # Rotate the list to the right
                 rotations.append(tuple(sublist))
-            
+
                 if tuple(sublist) in unique: # or tuple(sublist) == original_lst: # rotations:
                     break
 
@@ -159,8 +159,8 @@ class group_operations:
         """
         filters partitions
         """
-        partition_generator = Combinatorics.partitions(n) 
-        partition_count = 0 
+        partition_generator = Combinatorics.partitions(n)
+        partition_count = 0
         partLen3 = []
         while True:
             try:
@@ -172,13 +172,13 @@ class group_operations:
                     partLen3.append(partition)
             except StopIteration:
                 break
-    
+
         unique = []
         for i in partLen3:
             permutations = set(it.permutations(i))
             sub_uniques = group_operations.cyclic_partitions(permutations)
             unique.extend(sub_uniques)
-        return unique 
+        return unique
 
 if __name__ == "__main__":
     # check conversion of combination and inequality
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     assert length == [1, 4, 6, 6]
     assert mod_length == [14, 4, 56, 4, 84, 4, 84, 4]
     assert comb.is_valid_inequality(L=2) == True
-    
+
     # check a False inequality
     comb = Combination([1, 2, 3], 17)
     length = comb.map_combination_to_lengths()
@@ -203,17 +203,17 @@ if __name__ == "__main__":
     assert cyclic == [[1,2,3], [1,2,3,4]]
 
     print("Partition:")
-    n = 17 
+    n = 17
     partitions = Combinatorics(n_disks=n)
     partitions.generate_combinations()
     combinations = partitions.raw_combinations
     filtered_combinations = [combination for combination in combinations if combination[0] == 1]
- 
+
     lengths = group_operations.map_many_combinations(filtered_combinations, n_disks=n)
-    
+
     cyclic = group_operations.cyclic_filter(filtered_combinations, n_disks=n)
     cyclic_lengths = group_operations.map_many_combinations(cyclic, n_disks=n)
-    
+
     cyclic_mod = []
     for i in cyclic:
         comb = Combination(i, n)
@@ -227,7 +227,7 @@ if __name__ == "__main__":
             dn4.append(i)
     for i in dn4:
         pass
-    
+
     l = [28,4,28,4,14,4,14,4,14,4,14,4,28,4,28,4,14,4,14,4,14,4,14,4,14,4]
     comb = [1,3,5,6,7,8,9,11,13,14,15,16,17]
     print('l', len(l), len(l)/2, (34-len(l))/2)
