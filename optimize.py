@@ -178,10 +178,3 @@ estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm""")
         first_line = f"# combination: {extracted_list}\n"
         f.write(first_line)
         np.savetxt(f, optimized_vertices)
-
-    visualize = False
-    if visualize:
-        plt.plot(*zip(*initial_geometry), 'o-', c='r', label='initia')
-        plt.plot(*zip(*optimized_vertices), 'o-', c='b', label='final')
-        plt.legend()
-        plt.show()

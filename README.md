@@ -12,7 +12,8 @@ In the `generate_geom.py` file edit the following parameters:
 - `n_disks` number of proteins in calculations.
 - `L` half-distance between proteins in simulation.
 - `r_disk` radius of proteins.
-
+1. Run `generate_geom.py` to generate geometries and place them in correct folders
+2. Run `run_simulation.sh` to go through folders and optimize each geometry
 ### Analysis 
 To be added in the future
 

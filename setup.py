@@ -181,6 +181,8 @@ class group_operations:
         return unique
 
 if __name__ == "__main__":
+    # TODO: move all this into testing and clear the clutter 
+
     # check conversion of combination and inequality
     comb = Combination([1, 2, 6, 12], 17)
     length = comb.map_combination_to_lengths()
