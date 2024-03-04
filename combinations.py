@@ -180,63 +180,41 @@ class group_operations:
             unique.extend(sub_uniques)
         return unique
 
+def calc_ideal_angle(L, R=7, xi=2):
+    '''
+    f_param = Delta_epsilon / sqrt(k*k_t) * h / a
+    D_epsilon - energy diff of lipids on-top of protein and in membrane ~ 0.3
+    h - monolayer thickness ~ 2 nm, a - lipid length ~ 0.7 nm
+    k - monolayer rigidiy ~ 1e-9 J, k_t - tilt modulus ~ 30 mJ/m
+    '''
+    h = 2 # nm
+    a = 0.7 # nm
+    k = 0.8e-19 # J
+    kt = 30e-3 # N/m
+    depsilon = 4 # kT/nm
+    f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
+    # print("f_param:", f_param)
+    return np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
+
+def caveolin_radius(L, R=7, xi=2):
+    phi = calc_ideal_angle(L=L, R=R)
+    R_c = (R+L*np.cos(np.pi-phi))/np.sin(np.pi-phi)
+    return R_c
+
+def calc_n_disks(L, R):
+    Rc = caveolin_radius(L=L, R=R)
+    circumference = 2*np.pi*Rc
+    print(circumference)
+    n_disks = circumference/(2*R + 2*L)
+    return round(n_disks)
+
 if __name__ == "__main__":
-    # TODO: move all this into testing and clear the clutter 
-
-    # check conversion of combination and inequality
-    comb = Combination([1, 2, 6, 12], 17)
-    length = comb.map_combination_to_lengths()
-    mod_length = comb.modify_one_length()
-    assert length == [1, 4, 6, 6]
-    assert mod_length == [14, 4, 56, 4, 84, 4, 84, 4]
-    assert comb.is_valid_inequality(L=2) == True
-
-    # check a False inequality
-    comb = Combination([1, 2, 3], 17)
-    length = comb.map_combination_to_lengths()
-    mod_length = comb.modify_one_length()
-    assert mod_length == [14, 4, 14, 4, 210, 4]
-    assert comb.is_valid_inequality(L=2) == False
-
-    combinations = [[1, 2, 3], [1, 2, 4], [1, 2, 3, 4]]
-    lengths = group_operations.map_many_combinations(combinations, 4)
-    assert lengths == [[1, 1, 2], [1, 2, 1], [1, 1, 1, 1]]
-    cyclic = group_operations.cyclic_filter(combinations, 4)
-    assert cyclic == [[1,2,3], [1,2,3,4]]
-
-    print("Partition:")
-    n = 17
-    partitions = Combinatorics(n_disks=n)
-    partitions.generate_combinations()
-    combinations = partitions.raw_combinations
-    filtered_combinations = [combination for combination in combinations if combination[0] == 1]
-
-    lengths = group_operations.map_many_combinations(filtered_combinations, n_disks=n)
-
-    cyclic = group_operations.cyclic_filter(filtered_combinations, n_disks=n)
-    cyclic_lengths = group_operations.map_many_combinations(cyclic, n_disks=n)
-
-    cyclic_mod = []
-    for i in cyclic:
-        comb = Combination(i, n)
-        length = comb.map_combination_to_lengths()
-        mod_length = comb.modify_one_length()
-        cyclic_mod.append(mod_length)
-    # print(cyclic_mod)
-    dn4 = []
-    for i in cyclic_lengths:
-        if len(i) == 13:
-            dn4.append(i)
-    for i in dn4:
-        pass
-
-    l = [28,4,28,4,14,4,14,4,14,4,14,4,28,4,28,4,14,4,14,4,14,4,14,4,14,4]
-    comb = [1,3,5,6,7,8,9,11,13,14,15,16,17]
-    print('l', len(l), len(l)/2, (34-len(l))/2)
-    comb = Combination(comb, n_disks=17)
-    comb.map_combination_to_lengths()
-    comb.modify_one_length()
-    print(comb.is_valid_inequality())
-    print(comb.lengths)
-    print(comb.mod_length)
-    print(comb.calculate_circle_points())
+    R = 7
+    L = 2
+    xi = 2
+    phi_s = calculate_phi_star(L=L, R=R, xi=xi)
+    print("phi*:", phi_s)
+    Rc = caveolin_radius(L=L, R=R, xi=xi)
+    print("Rc:", Rc)
+    n_disks = calc_n_disks(L=L, R=R)
+    print(n_disks, round(n_disks))

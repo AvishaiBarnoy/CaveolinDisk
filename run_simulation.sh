@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# script to run optimization.
+# 1. run generate_geom.py to create folders and initial geometry files.
+# 2. run this script that uses optimize.py
 
 for i in dn*
 do

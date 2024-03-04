@@ -1,12 +1,15 @@
-from setup import Combinatorics
-from setup import Combination
-from setup import group_operations
+from combinations import Combinatorics
+from combinations import Combination
+from combinations import group_operations
+from combinations import calc_n_disks
 import numpy as np
 import sys
 import os
 from tqdm import tqdm
 
-def main(n_disks, r_disk, L):
+def main(r_disk, L):
+
+    n_disks = calc_n_disks(R=r_disk, L=L)
 
     sys.stdout.write(f"""
 N proteins: {n_disks}
@@ -33,7 +36,7 @@ The other method is good up to n=11, since it is computationally heavy.\n
         # remove combinations using cyclic filter
         filtered_combinations = group_operations.cyclic_filter(raw_combinations, n_disks)
         sys.stdout.write(f"Filtred redundant combinations, now we only have {len(filtered_combinations)} combinations.\n")
-    if n_disks < 12:
+    elif n_disks < 12:
         sys.stdout.write("""############
 # WARNING! #
 ############
@@ -70,7 +73,7 @@ This method does not filter mirror combinations [1,2,3] and [3,2,1] and only wor
 
         if dn < 10:
             dn_folder = f"dn0{dn}"
-        if 10 < dn < 100:
+        if 10 <= dn < 100:
             dn_folder = f"dn{dn}"
 
         os.makedirs(f"{dn_folder}/geom_{i}", exist_ok=True)
@@ -84,7 +87,7 @@ if __name__ == "__main__":
     # TODO: auto-choose n_disks from caveolae radius 
     # TODO: input file format
     # TODO: cli options
-    n_disks = 11
+    # n_disks = 11
     r_disk = 7
     L = 1
-    main(n_disks, r_disk, L)
+    main(r_disk, L)
