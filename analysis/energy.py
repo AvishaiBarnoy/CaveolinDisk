@@ -36,7 +36,7 @@ if __name__ == "__main__":
     markers = ["o", "^", "s", "+", "h", "v", "1", "*", "8", "p", "x"]
 
     # different values for kappa_tilde
-    L_min_lst = [0.005, 0.01, 0.015, 0.05]
+    L_min_lst = [0.003, 0.005, 0.01, 0.015, 0.05]
     k = calc_k(L=L, R=R, xi=xi)
 
     F = calc_F(L=L, R=R)

@@ -17,5 +17,8 @@ In the `generate_geom.py` file edit the following parameters:
 ### Analysis 
 To be added in the future
 
+## Development
+In the future I will add an input file and rearrange some of the functions.
+
 ## Thanks
 Thanks for Itai Knaan-Harpaz for the algorithm for the initial geometry
