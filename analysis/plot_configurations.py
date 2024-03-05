@@ -44,10 +44,11 @@ for i in range(m):
 
 # plt.tight_layout()
 
+lim_x = lim_y = 40
 for i in range(0,m):
     for j in range(0,n):
-        axs[i,j].set_ylim([-35,35])
-        axs[i,j].set_xlim([-35,35])
+        axs[i,j].set_ylim([-lim_y, lim_y])
+        axs[i,j].set_xlim([-lim_x, lim_x])
         axs[i,j].set_aspect('equal')
         axs[i,j].xaxis.set_tick_params(labelsize=8)
         axs[i,j].yaxis.set_tick_params(labelsize=8)

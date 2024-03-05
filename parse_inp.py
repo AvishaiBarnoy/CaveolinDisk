@@ -13,11 +13,11 @@ def read_inputfile():
     input_file = sys.argv[1]
     try:
         # initialize parameters
-        params = {"n_disks": None, "r_disk": None, "L": None}
+        params = {"r_disk": None, "L": None}
 
         with open(input_file, 'r') as file:
             # Perform operations on the input file
-            print(f"Reading input from file: {input_file}\n")
+            print(f"Reading input from file: {input_file}")
 
             # Process each line
             for line in file:
@@ -39,14 +39,6 @@ def read_inputfile():
                         print(f"'{line[1]}' should be an float or an integer")
                         sys.exit(1)
 
-                if line[0].lower() == 'n_disks':
-                    try:
-                        params['n_disks'] = int(line[1])
-                    except ValueError:
-                        print("Error: wrong type for disk number (N_DISKS) value")
-                        print(f"'{line[1]}' should be an integer")
-                        sys.exit(1)
-
                 if line[0].lower() == "r":
                     try:
                         params['r_disk'] = float(line[1])
@@ -59,7 +51,7 @@ def read_inputfile():
             print(f"Error: missing parameter values")
 
 
-        print(f"parameters {params}")
+        # print(f"parameters {params}")
         return params
 
     except FileNotFoundError:
@@ -68,4 +60,4 @@ def read_inputfile():
 
 if __name__ == "__main__":
     inps = read_inputfile()
-    print(inps)
+    print(f"parameters {inps}")

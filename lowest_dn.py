@@ -54,20 +54,27 @@ def find_lowest_value_directory(root_dir, k, ideal_angle):
                     lowest_dir = dir_name
     return lowest_value, lowest_dir
 
-def calc_ideal_angle(L, xi=2, R=7):
+
+def calc_ideal_angle(L, R=7, xi=2):
     '''
     f_param = Delta_epsilon / sqrt(k*k_t) * h / a
-    D_epsilon - energy diff of lipids on-top of protein and in membrane
-    h - monolayer thickness ~ 2 nm, a - lipid length ~ 1 nm
-    k - monolayer rigidiy ~ 1e-9 J, k_t - tilt modulus ~ 3 mJ/m
+    D_epsilon - energy diff of lipids on-top of protein and in membrane ~ 0.3
+    h - monolayer thickness ~ 2 nm, a - lipid length ~ 0.7 nm
+    k - monolayer rigidiy ~ 1e-9 J, k_t - tilt modulus ~ 30 mJ/m
     '''
-    f_param = 0.3
-    return f_param * 1 / (2/np.tanh(7/xi) + 1/np.tanh(L/xi))
+    h = 2 # nm
+    a = 0.7 # nm
+    k = 0.8e-19 # J
+    kt = 30e-3 # N/m
+    depsilon = 4 # kT/nm
+    f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
+    # print("f_param:", f_param)
+    return np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
 
 if __name__ == "__main__":
     k = 1
     L = 5
-    ideal_angle = np.pi - calc_ideal_angle(L, xi=2, R=7)
+    ideal_angle = calc_ideal_angle(L, xi=2, R=7)
 
     root_directory = os.getcwd()
     lowest_value, lowest_dir = find_lowest_value_directory(root_directory, k=k, ideal_angle=ideal_angle)
