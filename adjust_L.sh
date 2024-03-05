@@ -20,4 +20,4 @@ for file in $(grep -l "L = " *.py); do
     echo "Updated $file"
 done
 
-sed -i -e "s/L\ \= [0-9]/L\ \= $new_L_value/g" $file 
+rm -rf *.py-e

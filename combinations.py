@@ -25,8 +25,7 @@ class Combinatorics:
                     yield(i,) + p
 
 class Combination:
-    def __init__(self, combination=[], n_disks=0, lengths=[],
-                 mod_length=[], energy=0, points=[]):
+    def __init__(self, combination=[], n_disks=0, lengths=[], mod_length=[], energy=0, points=[]):
         self.combination = combination
         self.n_disks = n_disks
         self.lengths = lengths
@@ -134,7 +133,6 @@ class group_operations:
         # TODO: should change to work on lengths and not on combinations
         unique = set()
 
-        # print(lsts, type(lsts))
         lsts = [list(lst) for lst in lsts]
         for sublist in lsts:
             original_lst = tuple(sublist)
@@ -160,14 +158,10 @@ class group_operations:
         filters partitions
         """
         partition_generator = Combinatorics.partitions(n)
-        partition_count = 0
         partLen3 = []
         while True:
             try:
                 partition = next(partition_generator)
-                if partition == [2,2,2]:
-                    print("found [2,2,2]")
-                partition_count += 1
                 if len(partition) >= 3: # toss-out partitions shorter than 3 vertex 
                     partLen3.append(partition)
             except StopIteration:
@@ -193,7 +187,6 @@ def calc_ideal_angle(L, R=7, xi=2):
     kt = 30e-3 # N/m
     depsilon = 4 # kT/nm
     f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
-    # print("f_param:", f_param)
     return np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
 
 def caveolin_radius(L, R=7, xi=2):
@@ -204,7 +197,6 @@ def caveolin_radius(L, R=7, xi=2):
 def calc_n_disks(L, R):
     Rc = caveolin_radius(L=L, R=R)
     circumference = 2*np.pi*Rc
-    print(circumference)
     n_disks = circumference/(2*R + 2*L)
     return round(n_disks)
 
