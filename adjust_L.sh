@@ -11,6 +11,8 @@ new_L_value=$1
 
 # TODO: if all values equal to new_L_value skip and don't sed
 #           grep "L\ =" *.py | awk '{print $4}'
+# TODO: adjust to case where initial number to change is larger than 9
+#
 # Iterate over each Python file containing "L = "
 for file in $(grep -l "L = " *.py); do
     # Replace the value of L with the new value using sed
@@ -21,3 +23,6 @@ for file in $(grep -l "L = " *.py); do
 done
 
 rm -rf *.py-e
+
+echo "\ngrep check to see adjusting worked properly:"
+grep "L\ =" *.py 

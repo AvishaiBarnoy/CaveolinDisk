@@ -6,5 +6,7 @@
 #   4.1 yes - run simulation
 #   4.2 no - exit and say goodbye nicely
 # 5. auto analyze
+# TODO: explain logic of code, what each file does.
+# TODO: option for an inputfile generation script that generates all relevant files and scripts 
 
 from parse_inp import read_inputfile
