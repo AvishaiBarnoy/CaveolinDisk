@@ -4,6 +4,11 @@
 # 1. run generate_geom.py to create folders and initial geometry files.
 # 2. run this script that uses optimize.py
 
+# TODO: change everything to run in python
+#   or maybe don't copy optimize every time rather run everything from same optimize
+#   loop through folder get their path and run optimize and then save output to 
+#   same folder.
+
 for i in dn*
 do
   cd $i
@@ -12,7 +17,7 @@ do
   do
     cd $j
     cp ../optimize.py .
-    python optimize.py geom_*.log
+    python optimize.py -s -c -i geom_*.log
     rm -f optimize.py
     cd ..
   done

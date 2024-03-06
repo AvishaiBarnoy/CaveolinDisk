@@ -30,7 +30,6 @@ def angles_energy(file_path, k=1, ideal_angle=2.930):
     geometry = np.loadtxt(file_path)
     angles = calculate_angles(geometry)
     last_value = 0.5 * k * np.sum(np.power(angles - ideal_angle, 2))
-    # print(last_value)
     return last_value
 
 def find_lowest_value_directory(root_dir, k, ideal_angle):
@@ -68,7 +67,6 @@ def calc_ideal_angle(L, R=7, xi=2):
     kt = 30e-3 # N/m
     depsilon = 4 # kT/nm
     f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
-    # print("f_param:", f_param)
     return np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
 
 if __name__ == "__main__":

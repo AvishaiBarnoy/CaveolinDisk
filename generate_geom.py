@@ -7,7 +7,7 @@ import sys
 import os
 from tqdm import tqdm
 
-def main(r_disk, L):
+def main(r_disk, L, distribute_excess_membrane=0):
 
     n_disks = calc_n_disks(R=r_disk, L=L)
 
@@ -23,7 +23,7 @@ estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm\n""")
 ############
 # WARNING! #
 ############
-This misses some combinations, e.g., for n=6 it misses [1,3,5]
+This misses some combinations, e.g., for n=6 it misses [1,3,5] corresponding to lengths [2,2,2]
 The other method is good up to n=11, since it is computationally heavy.\n
 \n""")
         combinations = Combinatorics(n_disks)
@@ -54,20 +54,32 @@ This method does not filter mirror combinations [1,2,3] and [3,2,1] and only wor
         if n_disks < 12:
             combination = Combination(lengths=combination, n_disks=n_disks)
 
-        # print("L", L)
-        mod_lengths = combination.modify_one_length(disk_radius=7, L=L)
-        # print(mod_lengths)
-        # check if combination is valid
+        combination.modify_one_length(disk_radius=7, L=L)
 
+        # check if combination is valid
         if combination.is_valid_inequality(L=L) == False:
             continue
+
+        dn = n_disks - len(combination.lengths)
+
+        # TODO: make uniform_excess_membrane_distribution a parameter in the input file 
+        if distribute_excess_membrane == 0:
+            pass
+        elif distribute_excess_membrane == 1:
+            membrane_excess = L*2 + L*2/(n_disks - dn) * dn
+            combination.mod_length = [membrane_excess if length == L*2 else length for length in combination.mod_length]
+        elif distribute_excess_membrane == 2:
+            sys.stdout.write("NON UNIFORM DISTIBUTION IS NOT IMPLEMENTED YET")
+            sys.stdout.write("Closing program")
+            sys.exit(1)
+            # for i, j in enumerate(combination.mod_length):
+              #  if j == L*2:
+               #     combination.mod_length[i] = L*2 + L*2/(n_disks - dn) * dn
 
         points = np.array(combination.calculate_circle_points())
 
         geom_file = f"geom_{i}.log"
 
-        dn = n_disks - len(combination.lengths)
-        # print(combination.mod_length)
 
         # make directories for geometries
 
@@ -82,12 +94,12 @@ This method does not filter mirror combinations [1,2,3] and [3,2,1] and only wor
             first_line = f"# combination: {combination.mod_length}\n"
             f.write(first_line)
             np.savetxt(f, points)
+    sys.exit(0)
 
 if __name__ == "__main__":
-    # TODO: auto-choose n_disks from caveolae radius 
     # TODO: input file format
     # TODO: cli options
-    # n_disks = 11
     r_disk = 7
     L = 1
-    main(r_disk, L)
+    distribute_membrane = 1 # uniform distribution
+    main(r_disk, L, distribute_excess_membrane=distribute_membrane)
