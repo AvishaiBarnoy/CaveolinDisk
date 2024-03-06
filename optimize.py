@@ -184,7 +184,7 @@ def main(geometry_file, L, R, save=True, conserve_membrane=False):
 
     initial_geometry = np.loadtxt(args.inputfile)
     extracted_list = get_ideal_dist(geometry_file)
-    sys.stdout.write(f"Combination: {extracted_list}\n")
+    sys.stdout.write(f"Initial configuration: {extracted_list}\n")
     ideal_distances = extracted_list
 
     id_angle = calc_ideal_angle(L, xi=2, R=7)
@@ -197,9 +197,9 @@ def main(geometry_file, L, R, save=True, conserve_membrane=False):
 N proteins: {n_disks}
 Protein radius: {r_disk} nm
 Half-distance: {L} nm
-Estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm""")
+Estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm\n""")
     if conserve_membrane:
-        sys.stdout.write("Membrane treatment: changing total area conserved.")
+        sys.stdout.write("Membrane treatment: changing total area conserved.\n")
     elif not conserve_membrane:
         # TODO: find a way to discern between case of uniform distribution and not conserving membrane
         sys.stdout.write("""Membrane treatment: static membrane.
@@ -217,10 +217,10 @@ Estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm""")
     # important to see that edges don't break
     final_edges = calculate_edges(optimized_vertices)
     sys.stdout.write(f"final edges ({len(final_edges)}):\n {final_edges}\n")
-
+    sys.stdout.write(f"total membrane eare: {sum(final_edges[1::2])}")
     if save == True:
         output_file = "geom_opt.txt"
-        sys.stdout.write(f"writing final geometry to: {output_file}")
+        sys.stdout.write(f"writing final geometry to: {output_file}\n")
         with open(f"{output_file}", "w") as f:
             first_line = f"# combination: {extracted_list}\n"
             f.write(first_line)
@@ -240,9 +240,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print(args.inputfile, args.save, args.conserve_membrane)
-
     r_disk = 7
     L = 1 # half-distance between proteins
-    print("args.conserve_membrane", args.conserve_membrane)
+
     main(geometry_file=args.inputfile, L=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane)
