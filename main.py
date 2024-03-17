@@ -7,12 +7,21 @@
 #   4.2 no - exit and say goodbye nicely
 # 5. extract files - extract.sh
 
+# TODO: move all cli options to parse_inp
+# https://realpython.com/command-line-interfaces-python-argparse/
+#       1. maybe usie in cli alternative to inputfile.txt
+#           1.1 argparse.SUPPRESS
+#           1.2 type
+#           1.3 choices
+#       2. maybe fromfile_prefix_chars="@" as a format for inputfile.txt
+#       3. maybe allow_abbrev=False to prevent confusion
+#       4. 
+
 from parse_inp import read_inputfile
 import argparse
 import sys
 
 parser = argparse.ArgumentParser(
-    prog="parse_inp",
     description="script for input file parsing",
     epilog="Not all those who physics are lost"
 )

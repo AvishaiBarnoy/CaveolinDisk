@@ -98,7 +98,6 @@ This method does not filter mirror combinations [1,2,3] and [3,2,1] and only wor
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog="generate_geom",
         description="generates initial geometries, sorts them accoring to ΔN in folders",
         epilog="Not all those who physics are lost"
     )

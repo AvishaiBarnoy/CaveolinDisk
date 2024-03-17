@@ -265,15 +265,18 @@ total membrane is conserved but excesss membrane is distributed uniformly betwee
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog="2D caveolin simulation optimizer",
         description="optimizer script for geometry",
         epilog="Not all those who physics are lost"
     )
-    parser.add_argument("-i", "--inputfile", required=True, help="path to input file")
-    parser.add_argument("-o", "--outputfile", help="path to output file", default="geom_opt.txt")
-    parser.add_argument("-s", "--save", action="store_true", help="default is to not save final geometry")
-    parser.add_argument("-c", "--conserve_membrane", action="store_true", help="conserve membrane and allow distance between proteins to change")
-    parser.add_argument("-r", "--repulsion", action="store_true", help="minimizes with protein repulsion")
+    io = parser.add_argument_group("input/output options")
+    io.add_argument("-i", "--inputfile", required=True, help="path to input file")
+    io.add_argument("-o", "--outputfile", help="path to output file", default="geom_opt.txt")
+    io.add_argument("-s", "--save", action="store_true", help="default is to not save final geometry")
+
+    options = parser.add_argument_group("optimization options")
+    options.add_argument("-c", "--conserve_membrane", action="store_true", help="conserve membrane and allow distance between proteins to change")
+    options.add_argument("-r", "--repulsion", action="store_true", help="minimizes with protein repulsion")
+
     args = parser.parse_args()
 
     r_disk = 7

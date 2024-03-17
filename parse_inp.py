@@ -73,7 +73,6 @@ def read_inputfile(inputfile):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog="parse_inp",
         description="script for input file parsing",
         epilog="Not all those who physics are lost"
     )
