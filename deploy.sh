@@ -12,7 +12,7 @@ pwd
 git add .
 
 # Commit changes.
-msg="rebuilding site $(date)"
+msg="rebuilding numeric caveoling package $(date)"
 if [ -n "$*" ]; then
 		msg="$*"
 	fi
