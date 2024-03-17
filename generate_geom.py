@@ -6,6 +6,7 @@ import numpy as np
 import sys
 import os
 from tqdm import tqdm
+import argparse
 
 def main(r_disk, L, distribute_excess_membrane=0):
 
@@ -62,19 +63,18 @@ This method does not filter mirror combinations [1,2,3] and [3,2,1] and only wor
 
         dn = n_disks - len(combination.lengths)
 
-        # TODO: make uniform_excess_membrane_distribution a parameter in the input file 
-        if distribute_excess_membrane == 0:
+        if distribute_excess_membrane == False:
             pass
-        elif distribute_excess_membrane == 1:
+
+        elif distribute_excess_membrane == True:
             membrane_excess = L*2 + L*2/(n_disks - dn) * dn
             combination.mod_length = [membrane_excess if length == L*2 else length for length in combination.mod_length]
+
         elif distribute_excess_membrane == 2:
             sys.stdout.write("NON UNIFORM DISTIBUTION IS NOT IMPLEMENTED YET")
-            sys.stdout.write("Closing program")
+            sys.stdout.write("currently implemented in the optimization level but not in the initial conditions level")
+            sys.stdout.write("exiting program without generating geometries")
             sys.exit(1)
-            # for i, j in enumerate(combination.mod_length):
-              #  if j == L*2:
-               #     combination.mod_length[i] = L*2 + L*2/(n_disks - dn) * dn
 
         points = np.array(combination.calculate_circle_points())
 
@@ -97,9 +97,16 @@ This method does not filter mirror combinations [1,2,3] and [3,2,1] and only wor
     sys.exit(0)
 
 if __name__ == "__main__":
-    # TODO: input file format
-    # TODO: cli options
+    parser = argparse.ArgumentParser(
+        prog="generate_geom",
+        description="generates initial geometries, sorts them accoring to ΔN in folders",
+        epilog="Not all those who physics are lost"
+    )
+    parser.add_argument("-c", "--conserve_membrane", action="store_true", help="decideds what to do with excess membrane\
+                        generated when generating ΔN (combining adjacent proteins)")
+    args = parser.parse_args()
+
+    distribute_membrane = args.conserve_membrane # uniform distribution
     r_disk = 7
     L = 1
-    distribute_membrane = 1 # uniform distribution
     main(r_disk, L, distribute_excess_membrane=distribute_membrane)

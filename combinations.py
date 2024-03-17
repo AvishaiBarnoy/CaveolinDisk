@@ -38,7 +38,6 @@ class Combination:
         takes combination [1, 3, 5, 6] and n_disks=6
         return length list unmodified [2, 2, 1, 1]
         """
-        # TODO: unite with modify_one_length
         combination = np.array(self.combination)
         self.lengths = np.diff(combination).tolist()
         last_length = self.n_disks - combination[-1] + combination[0]
@@ -106,7 +105,6 @@ class Combination:
         return self.points
 
 class group_operations:
-    # TODO: possibly restrutcutre, though Combination class is for a specific combinatio
     @staticmethod
     def map_many_combinations(combinations: list, n_disks: int) -> list:
         lengths = [Combination(combination, n_disks).map_combination_to_lengths() for combination in combinations]
@@ -130,7 +128,6 @@ class group_operations:
 
     @staticmethod
     def cyclic_partitions(lsts):
-        # TODO: should change to work on lengths and not on combinations
         unique = set()
 
         lsts = [list(lst) for lst in lsts]

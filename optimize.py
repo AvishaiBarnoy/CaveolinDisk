@@ -237,19 +237,17 @@ Protein radius: {r_disk} nm
 Half-distance: {L} nm
 Estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm\n""")
     if conserve_membrane:
-        sys.stdout.write("Membrane treatment: changing total area conserved.\n")
+        sys.stdout.write("""Membrane treatment:
+distance between proteins is allowed to change but total membrane is conserved\n""")
     elif not conserve_membrane:
-        # TODO: find a way to discern between case of uniform distribution and not conserving membrane
-        sys.stdout.write("""Membrane treatment: static membrane.
-    total area might be conserved but uniformly distributed, check generate_geom.py
-    if that option was used.""")
+        sys.stdout.write("""Membrane treatment:
+total membrane is conserved but excesss membrane is distributed uniformly between proteins.\n""")
 
     optimizer = GeometryOptimizer(num_vertices, initial_geometry.flatten(), ideal_distances, ideal_angles,
                                   k_edges, k_angle, Lid=L, repulsion=repulsion, conserve_membrane=conserve_membrane)
     optimized_vertices, min_energy = optimizer.optimize_geometry()
     optimized_vertices = optimized_vertices.reshape((num_vertices, 2))
 
-    # TODO: maybe remove this print of angles
     sys.stdout.write(f"final angles:\n {calculate_angles(optimized_vertices)}\n")
 
     # important to see that edges don't break

@@ -1,24 +1,15 @@
-import sys
 import argparse
-# TODO: add default input filename
-# TODO: after reading inputfile should adjust analysis scripts accordingly
-# TODO: replace sys with argparse
+import sys
+# TODO: after reading inputfile should adjust scripts accordingly
 
-def read_inputfile():
-    # Check if the correct number of command-line arguments is provided
-    if len(sys.argv) != 2:
-        print("Usage: python read_inputfile.py <input_file>")
-        sys.exit(1)  # Exit the program with an error code
-
-    # Extract the input file name from the command-line arguments
-    input_file = sys.argv[1]
+def read_inputfile(inputfile):
     try:
         # initialize parameters
-        params = {"r_disk": None, "L": None}
+        params = {"r_disk": None, "L": None, "excess_membrane": 0}
 
-        with open(input_file, 'r') as file:
+        with open(inputfile, 'r') as file:
             # Perform operations on the input file
-            print(f"Reading input from file: {input_file}")
+            print(f"Reading input from file: {inputfile}")
 
             # Process each line
             for line in file:
@@ -48,11 +39,32 @@ def read_inputfile():
                         print(f"'{line[1]}' should be an float or an integer")
                         sys.exit(1)
 
+                if line[0].lower() == "excess_membrane":
+                    try:
+                        params['excess_membrane'] = int(line[1])
+                        if params['excess_membrane'] == 0:
+                            # no redistribution os excess membrane
+                            print("adjust scripts to not conserve membrane")
+                            print("don't edit any file\n")
+                        elif params['excess_membrane'] == 1:
+                            # uniform distribution between membranes
+                            print("adjust scripts to uniformly distribute excess membrane")
+                            print("edit in generate_geom.py\n")
+                        elif params['excess_membrane'] == 2:
+                            # initially distribute uniformly but allow to change during
+                            print("adjust scripts to uniformly distribute excess membrane")
+                            print("then allow distance between proteins to change")
+                            print("edit generate_geom.py and run_simulation.sh for optimzie.py cli options\n")
+                    except ValueError:
+                        print("Error: wrong type for optin for dealing with excess membrane")
+                        print(f"'{line[1]}' should be an integer")
+                        sys.exit(1)
+
         if None in params.values():
             print(f"Error: missing parameter values")
 
-
         # print(f"parameters {params}")
+        sys.stdout.write("Input file read correctly")
         return params
 
     except FileNotFoundError:
@@ -60,5 +72,15 @@ def read_inputfile():
         sys.exit(1)  # Exit the program with an error code
 
 if __name__ == "__main__":
-    inps = read_inputfile()
-    print(f"parameters {inps}")
+    parser = argparse.ArgumentParser(
+        prog="parse_inp",
+        description="script for input file parsing",
+        epilog="Not all those who physics are lost"
+    )
+    parser.add_argument("-i", "--inputfile", help="path to input file with simulation instructions", default="inputfile.txt")
+    args = parser.parse_args()
+
+    inp_params = read_inputfile(inputfile=args.inputfile)
+
+    sys.stdout.write(f"Final parameters {inp_params}\n")
+    sys.exit(0)
