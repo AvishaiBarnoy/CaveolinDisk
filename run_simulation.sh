@@ -9,6 +9,8 @@
 #   loop through folder get their path and run optimize and then save output to 
 #   same folder.
 
+# TODO: use dirname and basename
+
 for i in dn*
 do
   cd $i

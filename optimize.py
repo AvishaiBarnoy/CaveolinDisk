@@ -176,7 +176,7 @@ def calc_n_disks(L, R):
     n_disks = circumference/(2*R + 2*L)
     return round(n_disks)
 
-def main(geometry_file, L, R, save=True, conserve_membrane=False):
+def main(geometry_file, L, R, output_file, save=True, conserve_membrane=False):
     n_disks = calc_n_disks(L=L, R=r_disk)
 
     k_edges = 100.0
@@ -219,10 +219,9 @@ Estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm\n""")
     sys.stdout.write(f"final edges ({len(final_edges)}):\n {final_edges}\n")
     sys.stdout.write(f"total membrane eare: {sum(final_edges[1::2])}")
     if save == True:
-        output_file = "geom_opt.txt"
         sys.stdout.write(f"writing final geometry to: {output_file}\n")
         with open(f"{output_file}", "w") as f:
-            first_line = f"# combination: {extracted_list}\n"
+            first_line = f"# combination: {final_edges}\n"
             f.write(first_line)
             np.savetxt(f, optimized_vertices)
 
@@ -234,13 +233,13 @@ if __name__ == "__main__":
         description="optimizer script for geometry",
         epilog="Not all those who physics are lost"
     )
-    parser.add_argument("-i", "--inputfile", required=True, help="path to inputfile")
+    parser.add_argument("-i", "--inputfile", required=True, help="path to input file")
+    parser.add_argument("-o", "--outputfile", help="path to output file", default="geom_opt.txt")
     parser.add_argument("-s", "--save", action="store_true", help="default is to not save final geometry")
     parser.add_argument("-c", "--conserve_membrane", action="store_true", help="conserve membrane and allow distance between proteins to change")
-
     args = parser.parse_args()
 
     r_disk = 7
     L = 1 # half-distance between proteins
 
-    main(geometry_file=args.inputfile, L=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane)
+    main(geometry_file=args.inputfile, L=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane, output_file=args.outputfile)

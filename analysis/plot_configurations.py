@@ -29,7 +29,9 @@ for i in filenames:
 m = 2
 n = 4
 fig, axs = plt.subplots(m, n)
-
+colors = ['r', 'g'] * 50
+edge_color1 = 'b'
+edge_color2 = 'g'
 for i in range(m):
     for j in range(n):
         index = i * n + j
@@ -39,7 +41,13 @@ for i in range(m):
             delta_n = index + 1
             delta_n = x[index]
             axs[i, j].set_title(r"$\Delta N$ = {}".format(delta_n))
-            axs[i, j].plot(*zip(*geom), marker='o', ms=2, mec='r')
+
+            # print zebra for membrane and proteins
+            for k in range(len(geom) - 1):
+                if k % 2 == 0:
+                    axs[i, j].plot([geom[k][0], geom[k+1][0]], [geom[k][1], geom[k+1][1]], color=edge_color1, marker='o', ms=2, mec='r')
+                else:
+                    axs[i, j].plot([geom[k][0], geom[k+1][0]], [geom[k][1], geom[k+1][1]], color=edge_color2, marker='o', ms=2, mec='r')
             axs[i, j].title.set_size(10)
 
 # plt.tight_layout()

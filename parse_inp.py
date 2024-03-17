@@ -1,7 +1,8 @@
 import sys
-
+import argparse
 # TODO: add default input filename
 # TODO: after reading inputfile should adjust analysis scripts accordingly
+# TODO: replace sys with argparse
 
 def read_inputfile():
     # Check if the correct number of command-line arguments is provided
