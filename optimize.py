@@ -7,7 +7,8 @@ import re
 import argparse
 
 class GeometryOptimizer:
-    def __init__(self, num_vertices, vertices, ideal_distances, ideal_angles, k_edges, k_angle, conserve_membrane=False, save=True):
+    def __init__(self, num_vertices, vertices, ideal_distances, ideal_angles, k_edges, k_angle, Lid,
+                 repulsion=False, conserve_membrane=False, save=True):
         self.num_vertices = num_vertices
         self.vertices = vertices
         self.ideal_distances = ideal_distances
@@ -15,6 +16,8 @@ class GeometryOptimizer:
         self.k_edges = k_edges
         self.k_angle = k_angle
         self.current_step = 0
+        self.repulsion = repulsion
+        self.Lid = Lid
         self.conserve_membrane = conserve_membrane
         self.save = save
 
@@ -44,6 +47,15 @@ class GeometryOptimizer:
 
             energy += self.k_edges * (current_membrane - total_membrane) ** 2
 
+        if self.repulsion:
+            for i in range(self.num_vertices):
+                next_vertex = (i + 1) % self.num_vertices
+                distance = np.linalg.norm(vertices[next_vertex] - vertices[i])
+                ideal_distance = self.ideal_distances[i]
+
+                if i % 2 != 0:
+                    energy += self.repulsion_k(Lid=self.Lid) * (distance - self.Lid) ** 2
+
         for i in range(self.num_vertices):
             prev_vertex = (i - 1) % self.num_vertices
             next_vertex = (i + 1) % self.num_vertices
@@ -56,6 +68,19 @@ class GeometryOptimizer:
     def calc_total_membrane_area(self, initial_distances):
         total_membrane = sum(initial_distances[1::2])
         return total_membrane
+
+    def repulsion_k(self, Lid, R=7):
+        h = 2 # nm
+        a = 0.7 # nm
+        xi = 2 # nm
+        k = 0.8e-19 # J
+        kt = 30e-3 # N/m
+        depsilon = 4 # kT/nm
+
+        A = (h/a)**2 * depsilon/np.sqrt(k*kt/1e18) * 4.11e-21
+        k = 2*A* ( (np.sinh(self.Lid/xi)*np.cosh(self.Lid/xi)) * (1/np.tanh(Lid/xi) + 2/np.tanh(R/xi)) - (np.sinh(Lid/xi))**4 )\
+                /(xi**2 * (1/np.tanh(Lid/xi)) + 2/np.tanh(R/xi))
+        return k
 
     def calculate_angle(self, prev_point, current_point, next_point):
         vector1 = prev_point - current_point
@@ -70,6 +95,7 @@ class GeometryOptimizer:
         optimized_vertices = result.x.reshape((-1, 2))
         return optimized_vertices, result.fun
 
+# TODO: organize all these functions
 def calculate_angles(points):
     angles = []
     for i in range(len(points)):
@@ -176,11 +202,23 @@ def calc_n_disks(L, R):
     n_disks = circumference/(2*R + 2*L)
     return round(n_disks)
 
-def main(geometry_file, L, R, output_file, save=True, conserve_membrane=False):
+def calc_k(L, R=7, xi=2):
+    h = 2 # nm
+    a = 0.7 # nm
+    k = 0.8e-19 # J
+    kt = 30e-3 # N/m
+    K_const = np.sqrt(k*kt/1e18) * (2/np.tanh(R/xi) + 1/np.tanh(L/xi))*1/np.tanh(L/xi) / (1/np.tanh(R/xi) + 1/np.tanh(L/xi))
+    return K_const / 4.11e-21
+
+def main(geometry_file, L, R, output_file, save=True, conserve_membrane=False, repulsion=False):
     n_disks = calc_n_disks(L=L, R=r_disk)
 
     k_edges = 100.0
-    k_angle = 1.0
+
+    if repulsion:
+        k_angle = calc_k(L=L, R=R, xi=2)
+    elif not repulsion:
+        k_angle = 1.0
 
     initial_geometry = np.loadtxt(args.inputfile)
     extracted_list = get_ideal_dist(geometry_file)
@@ -207,7 +245,7 @@ Estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm\n""")
     if that option was used.""")
 
     optimizer = GeometryOptimizer(num_vertices, initial_geometry.flatten(), ideal_distances, ideal_angles,
-                                  k_edges, k_angle, conserve_membrane=conserve_membrane)
+                                  k_edges, k_angle, Lid=L, repulsion=repulsion, conserve_membrane=conserve_membrane)
     optimized_vertices, min_energy = optimizer.optimize_geometry()
     optimized_vertices = optimized_vertices.reshape((num_vertices, 2))
 
@@ -237,9 +275,11 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--outputfile", help="path to output file", default="geom_opt.txt")
     parser.add_argument("-s", "--save", action="store_true", help="default is to not save final geometry")
     parser.add_argument("-c", "--conserve_membrane", action="store_true", help="conserve membrane and allow distance between proteins to change")
+    parser.add_argument("-r", "--repulsion", action="store_true", help="minimizes with protein repulsion")
     args = parser.parse_args()
 
     r_disk = 7
-    L = 1 # half-distance between proteins
+    L = 2 # half-distance between proteins
 
-    main(geometry_file=args.inputfile, L=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane, output_file=args.outputfile)
+    main(geometry_file=args.inputfile, L=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane,
+         output_file=args.outputfile, repulsion=args.repulsion)
