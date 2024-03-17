@@ -11,17 +11,9 @@
 
 # TODO: use dirname and basename
 
-for i in dn*
+
+for i in dn*/geom_*/*log
 do
-  cd $i
-  cp ../optimize.py .
-  for j in geom_*
-  do
-    cd $j
-    cp ../optimize.py .
-    python optimize.py -s -c -i geom_*.log
-    rm -f optimize.py
-    cd ..
-  done
-  cd ..
+  OUTPUT_FILE=`dirname $i`/geom_opt.txt
+  python optimize.py -s -c -r -i $i -o $OUTPUT_FILE
 done
