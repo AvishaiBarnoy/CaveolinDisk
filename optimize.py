@@ -12,7 +12,11 @@ class GeometryOptimizer:
         self.num_vertices = num_vertices
         self.vertices = vertices
         self.ideal_distances = ideal_distances
+
+        # TODO: look in test_class.py for an example how to set initial angles since for all scenarios L in the initial geometry
+        #       is the same throughout the system
         self.ideal_angles = ideal_angles
+
         self.k_edges = k_edges
         self.k_angle = k_angle
         self.current_step = 0
@@ -25,14 +29,17 @@ class GeometryOptimizer:
         vertices = np.array(vertices).reshape((self.num_vertices, 2))
 
         energy = 0.0
-
+        # TODO: each energy step ideal angles list is recalculated and then used
+        #       for energy calculation
         if self.conserve_membrane == False:
-                next_vertex = (i + 1) % self.num_vertices
-                distance = np.linalg.norm(vertices[next_vertex] - vertices[i])
-                ideal_distance = self.ideal_distances[i]
-                energy += self.k_edges * (distance - ideal_distance) ** 2
+            # TODO: just use the initially calculated ideal_angle
+            next_vertex = (i + 1) % self.num_vertices
+            distance = np.linalg.norm(vertices[next_vertex] - vertices[i])
+            ideal_distance = self.ideal_distances[i]
+            energy += self.k_edges * (distance - ideal_distance) ** 2
 
         elif self.conserve_membrane == True:
+            # TODO: calculate angle_list each step
             total_membrane = self.calc_total_membrane_area(self.ideal_distances)
             current_membrane = 0
             for i in range(self.num_vertices):
@@ -60,6 +67,7 @@ class GeometryOptimizer:
             prev_vertex = (i - 1) % self.num_vertices
             next_vertex = (i + 1) % self.num_vertices
             angle = self.calculate_angle(vertices[prev_vertex], vertices[i], vertices[next_vertex])
+            # TODO: on-the-fly ideal angle calculation
             ideal_angle = self.ideal_angles[i]
             energy += self.k_angle * (angle - ideal_angle) ** 2
 
@@ -70,6 +78,8 @@ class GeometryOptimizer:
         return total_membrane
 
     def repulsion_k(self, Lid, R=7):
+        # TODO: rename to membrane energy
+        # TODO: correct energy
         h = 2 # nm
         a = 0.7 # nm
         xi = 2 # nm
@@ -183,6 +193,7 @@ def calc_ideal_angle(L, R=7, xi=2):
     h - monolayer thickness ~ 2 nm, a - lipid length ~ 0.7 nm
     k - monolayer rigidiy ~ 1e-9 J, k_t - tilt modulus ~ 30 mJ/m
     '''
+    # TODO: move into optimize
     h = 2 # nm
     a = 0.7 # nm
     k = 0.8e-19 # J
@@ -227,6 +238,7 @@ def main(geometry_file, L, R, output_file, save=True, conserve_membrane=False, r
 
     id_angle = calc_ideal_angle(L, xi=2, R=7)
 
+    # TODO: ideal angle should be calculated in the optimizer
     ideal_angles = [id_angle] * len(ideal_distances)
     num_vertices = len(initial_geometry)
     sys.stdout.write(f"\nIdeal angle: {id_angle}")
