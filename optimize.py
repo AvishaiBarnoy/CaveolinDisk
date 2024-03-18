@@ -78,8 +78,8 @@ class GeometryOptimizer:
         depsilon = 4 # kT/nm
 
         A = (h/a)**2 * depsilon/np.sqrt(k*kt/1e18) * 4.11e-21
-        k = 2*A* ( (np.sinh(self.Lid/xi)*np.cosh(self.Lid/xi)) * (1/np.tanh(Lid/xi) + 2/np.tanh(R/xi)) - (np.sinh(Lid/xi))**4 )\
-                /(xi**2 * (1/np.tanh(Lid/xi)) + 2/np.tanh(R/xi))
+        k = 2*A* ( (np.sinh(self.Lid/xi)*np.cosh(self.Lid/xi)) * (1/np.tanh(self.Lid/xi) + 2/np.tanh(R/xi)) - (np.sinh(self.Lid/xi))**4 )\
+                /(xi**2 * (1/np.tanh(self.Lid/xi)) + 2/np.tanh(R/xi))
         return k
 
     def calculate_angle(self, prev_point, current_point, next_point):
