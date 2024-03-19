@@ -8,6 +8,9 @@ import os
 from tqdm import tqdm
 import argparse
 
+# TODO: add option to not redistribute excess membrane and let it relax through optimization
+#       trickier and might explode
+
 def main(r_disk, L, distribute_excess_membrane=0):
 
     n_disks = calc_n_disks(R=r_disk, L=L)

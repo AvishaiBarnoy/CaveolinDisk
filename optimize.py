@@ -7,15 +7,27 @@ import re
 import argparse
 
 class GeometryOptimizer:
-    def __init__(self, num_vertices, vertices, ideal_distances, ideal_angles, k_edges, k_angle, Lid,
-                 repulsion=False, conserve_membrane=False, save=True):
-        self.num_vertices = num_vertices
+    def __init__(self, vertices, ideal_distances, k_edges, k_angle, Lid,
+                 ideal_angles=[], repulsion=False, conserve_membrane=False, save=True):
+        # TODO: work with numpy arrays instead of lists
         self.vertices = vertices
+        self.num_vertices = len(self.vertices)//2
         self.ideal_distances = ideal_distances
 
-        # TODO: look in test_class.py for an example how to set initial angles since for all scenarios L in the initial geometry
-        #       is the same throughout the system
-        self.ideal_angles = ideal_angles
+        def initiate_ideal_angles(geometry):
+            """takes initial geometry and initializes ideal angles list"""
+            h = 2; a = 0.7; depsilon = 4; xi = 2; k =0.8e-19; kt = 30e-3; R = 7
+            f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
+            geometry = np.array(geometry).reshape((self.num_vertices, 2))
+            cyclic_geometry = np.vstack([geometry, geometry[0]])
+            angle_lst = []
+            for i, j in enumerate(geometry):
+                if i % 2 != 0:
+                    L = distance.euclidean(cyclic_geometry[i], cyclic_geometry[i+1])
+                    ideal_angle = np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
+                    angle_lst.append(ideal_angle)
+            return angle_lst
+        self.ideal_angles = initiate_ideal_angles(self.vertices)
 
         self.k_edges = k_edges
         self.k_angle = k_angle
@@ -27,20 +39,28 @@ class GeometryOptimizer:
 
     def calculate_energy(self, vertices):
         vertices = np.array(vertices).reshape((self.num_vertices, 2))
-
         energy = 0.0
+
         # TODO: each energy step ideal angles list is recalculated and then used
         #       for energy calculation
         if self.conserve_membrane == False:
+            # conserve_membrane name is misleading since membrane might be conserved (depending
+            # on the options in generate_geom.py) it's just that distance between proteins/disks
+            # is not allowed to change. # TODO: change conserve_membrane name
+            # 
             # TODO: just use the initially calculated ideal_angle
             next_vertex = (i + 1) % self.num_vertices
             distance = np.linalg.norm(vertices[next_vertex] - vertices[i])
             ideal_distance = self.ideal_distances[i]
+            # make sure edges don't change
             energy += self.k_edges * (distance - ideal_distance) ** 2
 
         elif self.conserve_membrane == True:
-            # TODO: calculate angle_list each step
+            # if distance between proteins/disks allowed to change
             total_membrane = self.calc_total_membrane_area(self.ideal_distances)
+
+            self.ideal_angles = self.update_ideal_angles(vertices)
+
             current_membrane = 0
             for i in range(self.num_vertices):
                 next_vertex = (i + 1) % self.num_vertices
@@ -52,47 +72,54 @@ class GeometryOptimizer:
                 elif i % 2 == 0:
                     energy += self.k_edges * (distance - ideal_distance) ** 2
 
+            # constraint on total membrane, k_edges should be big 
             energy += self.k_edges * (current_membrane - total_membrane) ** 2
 
         if self.repulsion:
+            # misleading name, takes into accound elastic energy
             for i in range(self.num_vertices):
                 next_vertex = (i + 1) % self.num_vertices
                 distance = np.linalg.norm(vertices[next_vertex] - vertices[i])
                 ideal_distance = self.ideal_distances[i]
 
                 if i % 2 != 0:
-                    energy += self.repulsion_k(Lid=self.Lid) * (distance - self.Lid) ** 2
+                    energy += self.elastic_energy(distance)
 
         for i in range(self.num_vertices):
+            # iterates num_vertices to make sure num angles is computed correctly
             prev_vertex = (i - 1) % self.num_vertices
             next_vertex = (i + 1) % self.num_vertices
             angle = self.calculate_angle(vertices[prev_vertex], vertices[i], vertices[next_vertex])
-            # TODO: on-the-fly ideal angle calculation
-            ideal_angle = self.ideal_angles[i]
-            energy += self.k_angle * (angle - ideal_angle) ** 2
+            energy += self.k_angle * (angle - self.ideal_angles[i]) ** 2
 
         return energy
 
+    def update_ideal_angles(self, geometry):
+        # updates ideal angles from geometry, since id_angle is a function of L
+        h = 2; a = 0.7; depsilon = 4; xi = 2; k =0.8e-19; kt = 30e-3; R = 7
+        f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
+        cyclic_geometry = np.vstack([geometry, geometry[0]])
+        angle_lst = []
+        for i, _ in enumerate(cyclic_geometry):
+            if i % 2 != 0:
+                L = distance.euclidean(cyclic_geometry[i], cyclic_geometry[i+1])
+                ideal_angle = np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
+                angle_lst.extend([ideal_angle, ideal_angle])
+        return angle_lst
+
     def calc_total_membrane_area(self, initial_distances):
+        """called one time to get total membrane area"""
         total_membrane = sum(initial_distances[1::2])
         return total_membrane
 
-    def repulsion_k(self, Lid, R=7):
-        # TODO: rename to membrane energy
-        # TODO: correct energy
-        h = 2 # nm
-        a = 0.7 # nm
-        xi = 2 # nm
-        k = 0.8e-19 # J
-        kt = 30e-3 # N/m
-        depsilon = 4 # kT/nm
-
+    def elastic_energy(self, L, R=7, h=2, a=0.7, xi=2, k=0.8e-19, kt=30e-3, depsilon=4):
+        """elastic energy depending on L"""
         A = (h/a)**2 * depsilon/np.sqrt(k*kt/1e18) * 4.11e-21
-        k = 2*A* ( (np.sinh(self.Lid/xi)*np.cosh(self.Lid/xi)) * (1/np.tanh(self.Lid/xi) + 2/np.tanh(R/xi)) - (np.sinh(self.Lid/xi))**4 )\
-                /(xi**2 * (1/np.tanh(self.Lid/xi)) + 2/np.tanh(R/xi))
-        return k
+        F = - A / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
+        return F
 
     def calculate_angle(self, prev_point, current_point, next_point):
+        """calculates single angle from geometry for deviation energy from ideal angle"""
         vector1 = prev_point - current_point
         vector2 = next_point - current_point
         dot_product = np.dot(vector1, vector2)
@@ -101,6 +128,8 @@ class GeometryOptimizer:
         return angle
 
     def optimize_geometry(self):
+        """where the magic happens"""
+        # TODO: add option for optimizer method and even optimization plan
         result = minimize(self.calculate_energy, self.vertices, method='cg', options={'disp': True, 'maxiter': 25000})
         optimized_vertices = result.x.reshape((-1, 2))
         return optimized_vertices, result.fun
@@ -123,7 +152,6 @@ def calculate_angles(points):
         angles.append(angle)
     return angles
 
-
 def calculate_edges(points):
     distances = []
     for i in range(len(points)):
@@ -135,42 +163,6 @@ def calculate_edges(points):
         dist = distance.euclidean(current_point, next_point)
         distances.append(dist)
     return distances
-
-def calculate_circle_points(mod_length) -> list[tuple[float, float]]:
-    min_radius = max(mod_length) / 2
-    max_radius = sum(mod_length) / 2
-
-    if min_radius > max_radius:
-        return []
-        raise ValueError("Segments are too long to fit in a circle")
-
-    x_0 = (min_radius + max_radius) / 2
-    d_0 = ((max_radius - min_radius) / 2) * 0.9
-
-    while d_0 > 1e-9:
-        current_angle = check_circle(mod_length, x_0)
-        if current_angle < 2 * np.pi:
-            x_0 -= d_0
-        else:
-            x_0 += d_0
-        d_0 /= 1.8
-    sys.stdout.write(f"The smallest radius that can fit all segments is {x_0}")
-    angle = 0.0
-    points = []
-    for length in mod_length:
-        x = x_0 * np.cos(angle)
-        y = x_0 * np.sin(angle)
-        points.append((x, y))
-        angle += 2 * np.arcsin(length / (2 * x_0))
-
-    return points
-
-def check_circle(mod_length, radius: float) -> float:
-    sum_of_angles = 0
-    for length in mod_length:
-        angle = 2 * np.arcsin(length / (2 * radius))
-        sum_of_angles += angle
-    return sum_of_angles
 
 def get_ideal_dist(file_path):
     with open(file_path, 'r') as file:
@@ -186,19 +178,8 @@ def get_ideal_dist(file_path):
         sys.exit(1)
     return extracted_list
 
-def calc_ideal_angle(L, R=7, xi=2):
-    '''
-    f_param = Delta_epsilon / sqrt(k*k_t) * h / a
-    D_epsilon - energy diff of lipids on-top of protein and in membrane ~ 0.3
-    h - monolayer thickness ~ 2 nm, a - lipid length ~ 0.7 nm
-    k - monolayer rigidiy ~ 1e-9 J, k_t - tilt modulus ~ 30 mJ/m
-    '''
+def calc_ideal_angle(L, R=7, xi=2, h=2, a=0.7, k=0.8e-19, kt=30e-3, depsilon=4):
     # TODO: move into optimize
-    h = 2 # nm
-    a = 0.7 # nm
-    k = 0.8e-19 # J
-    kt = 30e-3 # N/m
-    depsilon = 4 # kT/nm
     f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
     return np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
 
@@ -224,8 +205,9 @@ def calc_k(L, R=7, xi=2):
 def main(geometry_file, L, R, output_file, save=True, conserve_membrane=False, repulsion=False):
     n_disks = calc_n_disks(L=L, R=r_disk)
 
-    k_edges = 100.0
+    k_edges = 100.0 # to keep proteins/disks rigid 
 
+    # TODO: think if it makes sense to give k_angle during optimization
     if repulsion:
         k_angle = calc_k(L=L, R=R, xi=2)
     elif not repulsion:
@@ -234,14 +216,9 @@ def main(geometry_file, L, R, output_file, save=True, conserve_membrane=False, r
     initial_geometry = np.loadtxt(args.inputfile)
     extracted_list = get_ideal_dist(geometry_file)
     sys.stdout.write(f"Initial configuration: {extracted_list}\n")
-    ideal_distances = extracted_list
+    ideal_distances = extracted_list # TODO: rename and this line is redundant 
 
-    id_angle = calc_ideal_angle(L, xi=2, R=7)
-
-    # TODO: ideal angle should be calculated in the optimizer
-    ideal_angles = [id_angle] * len(ideal_distances)
-    num_vertices = len(initial_geometry)
-    sys.stdout.write(f"\nIdeal angle: {id_angle}")
+    # num_vertices = len(initial_geometry)
 
     sys.stdout.write(f"""
 N proteins: {n_disks}
@@ -255,10 +232,12 @@ distance between proteins is allowed to change but total membrane is conserved\n
         sys.stdout.write("""Membrane treatment:
 total membrane is conserved but excesss membrane is distributed uniformly between proteins.\n""")
 
-    optimizer = GeometryOptimizer(num_vertices, initial_geometry.flatten(), ideal_distances, ideal_angles,
-                                  k_edges, k_angle, Lid=L, repulsion=repulsion, conserve_membrane=conserve_membrane)
+    # def __init__(self, vertices, ideal_distances, k_edges, k_angle, Lid, repulsion=False, conserve_membrane=False, save=True):
+    # TODO: why is initial_geometry flattened and then reshaped?
+    optimizer = GeometryOptimizer(vertices=initial_geometry.flatten(), ideal_distances=ideal_distances,
+                                  k_edges=k_edges, k_angle=k_angle, Lid=L, repulsion=repulsion, conserve_membrane=conserve_membrane)
     optimized_vertices, min_energy = optimizer.optimize_geometry()
-    optimized_vertices = optimized_vertices.reshape((num_vertices, 2))
+    optimized_vertices = optimized_vertices.reshape((len(initial_geometry), 2))
 
     sys.stdout.write(f"final angles:\n {calculate_angles(optimized_vertices)}\n")
 
