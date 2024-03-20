@@ -8,6 +8,8 @@ import argparse
 
 class GeometryOptimizer:
     def __init__(self, vertices, ideal_distances, k_edges, k_angle, Lid,
+                 optimizer, n_steps=5000,
+                 energy_method='new',
                  ideal_angles=[], repulsion=False, conserve_membrane=False, save=True):
         # TODO: work with numpy arrays instead of lists
         self.vertices = vertices
@@ -37,18 +39,33 @@ class GeometryOptimizer:
         self.conserve_membrane = conserve_membrane
         self.save = save
 
+        self.energy_method = energy_method.lower() # TODO: implement in the future use choices
+
+        # TODO: add optimization plan -> mv todo to input file
+        self.opt_method = optimizer # TODO: implement more methods, currently only: cg, bfgs, l-bfgs-b
+        self.n_steps = n_steps
+
     def calculate_energy(self, vertices):
+        # TODO: add documentation
+
+
+        # TODO: implement differnet energy calculation methods
+        #   1. write energy functions for new method
+        #   2. identify which function calls are for both methods
+        #   3. write new logic
+        if self.energy_method = 'new': # default should be Misha's new energy function
+            pass
+        elif self.energy_method = 'old':
+            pass
+
+
         vertices = np.array(vertices).reshape((self.num_vertices, 2))
         energy = 0.0
 
-        # TODO: each energy step ideal angles list is recalculated and then used
-        #       for energy calculation
         if self.conserve_membrane == False:
             # conserve_membrane name is misleading since membrane might be conserved (depending
             # on the options in generate_geom.py) it's just that distance between proteins/disks
             # is not allowed to change. # TODO: change conserve_membrane name
-            # 
-            # TODO: just use the initially calculated ideal_angle
             next_vertex = (i + 1) % self.num_vertices
             distance = np.linalg.norm(vertices[next_vertex] - vertices[i])
             ideal_distance = self.ideal_distances[i]
@@ -68,15 +85,17 @@ class GeometryOptimizer:
                 ideal_distance = self.ideal_distances[i]
 
                 if i % 2 != 0:
+                    # sums for total membrane conservation
                     current_membrane += distance
                 elif i % 2 == 0:
+                    # constraint only on proteins/disks
                     energy += self.k_edges * (distance - ideal_distance) ** 2
 
             # constraint on total membrane, k_edges should be big 
             energy += self.k_edges * (current_membrane - total_membrane) ** 2
 
         if self.repulsion:
-            # misleading name, takes into accound elastic energy
+            # misleading name, takes into accound elastic energy # TODO: rename
             for i in range(self.num_vertices):
                 next_vertex = (i + 1) % self.num_vertices
                 distance = np.linalg.norm(vertices[next_vertex] - vertices[i])
@@ -85,8 +104,8 @@ class GeometryOptimizer:
                 if i % 2 != 0:
                     energy += self.elastic_energy(distance)
 
+        # sums energy price due to deviation from ideal angle 
         for i in range(self.num_vertices):
-            # iterates num_vertices to make sure num angles is computed correctly
             prev_vertex = (i - 1) % self.num_vertices
             next_vertex = (i + 1) % self.num_vertices
             angle = self.calculate_angle(vertices[prev_vertex], vertices[i], vertices[next_vertex])
@@ -95,7 +114,9 @@ class GeometryOptimizer:
         return energy
 
     def update_ideal_angles(self, geometry):
-        # updates ideal angles from geometry, since id_angle is a function of L
+        """
+        updates ideal angles from geometry, since id_angle is a function of L
+        """
         h = 2; a = 0.7; depsilon = 4; xi = 2; k =0.8e-19; kt = 30e-3; R = 7
         f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
         cyclic_geometry = np.vstack([geometry, geometry[0]])
@@ -108,12 +129,16 @@ class GeometryOptimizer:
         return angle_lst
 
     def calc_total_membrane_area(self, initial_distances):
-        """called one time to get total membrane area"""
+        """
+        called one time to get total membrane area
+        """
         total_membrane = sum(initial_distances[1::2])
         return total_membrane
 
     def elastic_energy(self, L, R=7, h=2, a=0.7, xi=2, k=0.8e-19, kt=30e-3, depsilon=4):
-        """elastic energy depending on L"""
+        """
+        elastic energy depending on L
+        """
         A = (h/a)**2 * depsilon/np.sqrt(k*kt/1e18) * 4.11e-21
         F = - A / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
         return F
@@ -129,8 +154,7 @@ class GeometryOptimizer:
 
     def optimize_geometry(self):
         """where the magic happens"""
-        # TODO: add option for optimizer method and even optimization plan
-        result = minimize(self.calculate_energy, self.vertices, method='cg', options={'disp': True, 'maxiter': 25000})
+        result = minimize(self.calculate_energy, self.vertices, method=self.opt_method, options={'disp': True, 'maxiter': self.n_steps})
         optimized_vertices = result.x.reshape((-1, 2))
         return optimized_vertices, result.fun
 
@@ -202,29 +226,32 @@ def calc_k(L, R=7, xi=2):
     K_const = np.sqrt(k*kt/1e18) * (2/np.tanh(R/xi) + 1/np.tanh(L/xi))*1/np.tanh(L/xi) / (1/np.tanh(R/xi) + 1/np.tanh(L/xi))
     return K_const / 4.11e-21
 
-def main(geometry_file, L, R, output_file, save=True, conserve_membrane=False, repulsion=False):
+def main(geometry_file, L, R, output_file, save=True, conserve_membrane=False, repulsion=False,
+         optimizer='cg', n_steps=5000, energy_method='new'):
     n_disks = calc_n_disks(L=L, R=r_disk)
 
     k_edges = 100.0 # to keep proteins/disks rigid 
 
-    # TODO: think if it makes sense to give k_angle during optimization
     if repulsion:
         k_angle = calc_k(L=L, R=R, xi=2)
     elif not repulsion:
+        # if elastic energy is not taken into account optimization works only on angles
+        #   and the value of k_angle is not important just needs to be much smaller than k_edges
         k_angle = 1.0
 
     initial_geometry = np.loadtxt(args.inputfile)
-    extracted_list = get_ideal_dist(geometry_file)
-    sys.stdout.write(f"Initial configuration: {extracted_list}\n")
-    ideal_distances = extracted_list # TODO: rename and this line is redundant 
-
-    # num_vertices = len(initial_geometry)
+    ideal_distances = get_ideal_dist(geometry_file) # TODO: rename, name misleading due to exapnsion of optimization options
+    sys.stdout.write(f"Initial configuration: {ideal_distances}\n")
 
     sys.stdout.write(f"""
 N proteins: {n_disks}
 Protein radius: {r_disk} nm
 Half-distance: {L} nm
-Estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm\n""")
+Estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm
+
+minimization method: {optimizer}
+energy calculation method: {energy_method}\n""")
+
     if conserve_membrane:
         sys.stdout.write("""Membrane treatment:
 distance between proteins is allowed to change but total membrane is conserved\n""")
@@ -232,14 +259,14 @@ distance between proteins is allowed to change but total membrane is conserved\n
         sys.stdout.write("""Membrane treatment:
 total membrane is conserved but excesss membrane is distributed uniformly between proteins.\n""")
 
-    # def __init__(self, vertices, ideal_distances, k_edges, k_angle, Lid, repulsion=False, conserve_membrane=False, save=True):
-    # TODO: why is initial_geometry flattened and then reshaped?
+    # TODO: why is initial_geometry flattened and then reshaped? -> input into scipy.minimize should be flat but rather than that...
     optimizer = GeometryOptimizer(vertices=initial_geometry.flatten(), ideal_distances=ideal_distances,
+                                  optimizer=optimizer, n_steps=n_steps, energy_method='new',
                                   k_edges=k_edges, k_angle=k_angle, Lid=L, repulsion=repulsion, conserve_membrane=conserve_membrane)
     optimized_vertices, min_energy = optimizer.optimize_geometry()
     optimized_vertices = optimized_vertices.reshape((len(initial_geometry), 2))
 
-    sys.stdout.write(f"final angles:\n {calculate_angles(optimized_vertices)}\n")
+    # sys.stdout.write(f"final angles:\n {calculate_angles(optimized_vertices)}\n")
 
     # important to see that edges don't break
     final_edges = calculate_edges(optimized_vertices)
@@ -251,8 +278,6 @@ total membrane is conserved but excesss membrane is distributed uniformly betwee
             first_line = f"# combination: {final_edges}\n"
             f.write(first_line)
             np.savetxt(f, optimized_vertices)
-
-    sys.exit(0)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -267,11 +292,17 @@ if __name__ == "__main__":
     options = parser.add_argument_group("optimization options")
     options.add_argument("-c", "--conserve_membrane", action="store_true", help="conserve membrane and allow distance between proteins to change")
     options.add_argument("-r", "--repulsion", action="store_true", help="minimizes with protein repulsion")
-
+    options.add_argument("-opt", "--optimizer", choices=['cg', 'bfgs', 'l-bfgs-b'], default="cg", help="which optimizer to use")
+    options.add_argument("-n", "--n_steps", type=int, default="25000", help="N steps before optimization stops")
+    options.add_argument('-e', "--energy_method", type=str, choices=['old', 'new'], help="""old assumes that in initial geometry the
+angles areclose to ideal angle and in the new one they aren't, the methods use different energy functions albeit a little similar.""")
     args = parser.parse_args()
 
     r_disk = 7
     L = 2 # half-distance between proteins
 
     main(geometry_file=args.inputfile, L=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane,
-         output_file=args.outputfile, repulsion=args.repulsion)
+         output_file=args.outputfile, repulsion=args.repulsion, n_steps=args.n_steps, optimizer=args.optimizer,
+         energy_method=args.energy_method)
+
+    sys.exit(0)
