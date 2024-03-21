@@ -31,8 +31,8 @@ class GeometryOptimizer:
                 angle_lst = []
                 for i, _ in enumerate(geometry):
                     if i % 2 != 0:
-                        L = distance.euclidean(cyclic_geometry[i], cyclic_geometry[i+1])
-                        ideal_angle = np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
+                        dist = distance.euclidean(cyclic_geometry[i], cyclic_geometry[i+1])
+                        ideal_angle = np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(dist/xi))
                         angle_lst.append(ideal_angle)
                 return angle_lst
 
@@ -204,8 +204,8 @@ class GeometryOptimizer:
         angle_lst = []
         for i, _ in enumerate(cyclic_geometry):
             if i % 2 != 0:
-                L = distance.euclidean(cyclic_geometry[i], cyclic_geometry[i+1])
-                ideal_angle = np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
+                dist = distance.euclidean(cyclic_geometry[i], cyclic_geometry[i+1])
+                ideal_angle = np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(dist/xi))
                 angle_lst.extend([ideal_angle, ideal_angle])
         return angle_lst
 
@@ -295,14 +295,14 @@ def calc_k(L, R=7):
     K_const = np.sqrt(k*kt/1e18) * (2/np.tanh(R/xi) + 1/np.tanh(L/xi))*1/np.tanh(L/xi) / (1/np.tanh(R/xi) + 1/np.tanh(L/xi))
     return K_const / 4.11e-21
 
-def main(geometry_file, L, R, output_file, save=True, conserve_membrane=False, repulsion=False,
+def main(geometry_file, L_i, R, output_file, save=True, conserve_membrane=False, repulsion=False,
          optimizer='cg', n_steps=5000, energy_method='new'):
-    n_disks = calc_n_disks(L=L, R=r_disk)
+    n_disks = calc_n_disks(L=L_i, R=r_disk)
 
     k_edges = 100.0 # to keep proteins/disks rigid 
 
     if repulsion:
-        k_angle = calc_k(L=L, R=R)
+        k_angle = calc_k(L=L_i, R=R)
     elif not repulsion:
         # if elastic energy is not taken into account optimization works only on angles
         #   and the value of k_angle is not important just needs to be much smaller than k_edges
@@ -371,7 +371,7 @@ angles areclose to ideal angle and in the new one they aren't, the methods use d
     r_disk = 7
     L = 2 # half-distance between proteins
 
-    main(geometry_file=args.inputfile, L=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane,
+    main(geometry_file=args.inputfile, L_i=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane,
          output_file=args.outputfile, repulsion=args.repulsion, n_steps=args.n_steps, optimizer=args.optimizer,
          energy_method=args.energy_method)
 

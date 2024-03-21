@@ -11,9 +11,12 @@ import argparse
 # TODO: add option to not redistribute excess membrane and let it relax through optimization
 #       trickier and might explode
 
-def main(r_disk, L, distribute_excess_membrane=0):
+def main(r_disk, L, distribute_excess_membrane=0, N=None):
 
-    n_disks = calc_n_disks(R=r_disk, L=L)
+    if N:
+        n_disks = N
+    elif not N:
+        n_disks = calc_n_disks(R=r_disk, L=L)
 
     sys.stdout.write(f"""
 N proteins: {n_disks}
@@ -104,11 +107,14 @@ if __name__ == "__main__":
         description="generates initial geometries, sorts them accoring to ΔN in folders",
         epilog="Not all those who physics are lost"
     )
+
+    # TODO: change to choices and 1,2,3 and put explanations in help
     parser.add_argument("-c", "--conserve_membrane", action="store_true", help="decideds what to do with excess membrane\
                         generated when generating ΔN (combining adjacent proteins)")
+    parser.add_argument("-N", "--N_disks", default=None, type=int, help="manual number of disks")
     args = parser.parse_args()
 
-    distribute_membrane = args.conserve_membrane # uniform distribution
+    # distribute_membrane = args.conserve_membrane # uniform distribution
     r_disk = 7
     L = 1
-    main(r_disk, L, distribute_excess_membrane=distribute_membrane)
+    main(r_disk, L, distribute_excess_membrane=args.conserve_membrane, N=args.N_disks)
