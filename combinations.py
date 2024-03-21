@@ -1,6 +1,5 @@
 import numpy as np
 import itertools as it
-import matplotlib.pyplot as plt
 
 class Combinatorics:
     def __init__(self, n_disks, raw_combinations=[], disk_radius=7, L=2):
@@ -180,8 +179,8 @@ def calc_ideal_angle(L, R=7, xi=2):
     '''
     h = 2 # nm
     a = 0.7 # nm
-    k = 0.8e-19 # J
-    kt = 30e-3 # N/m
+    k = 0.4e-19 # J
+    kt = 20e-3 # N/m
     depsilon = 4 # kT/nm
     f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
     return np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
@@ -200,7 +199,7 @@ def calc_n_disks(L, R):
 if __name__ == "__main__":
     R = 7
     L = 2
-    xi = 2
+    xi = np.sqrt(k/kt) * 1e9 # J / nm
     phi_s = calculate_phi_star(L=L, R=R, xi=xi)
     print("phi*:", phi_s)
     Rc = caveolin_radius(L=L, R=R, xi=xi)

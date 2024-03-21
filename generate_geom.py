@@ -54,7 +54,7 @@ This method does not filter mirror combinations [1,2,3] and [3,2,1] and only wor
     for i, combination in tqdm(enumerate(filtered_combinations), total=len(filtered_combinations)):
         if n_disks > 12:
             combination = Combination(combination, n_disks)
-            length_list = combination.map_combination_to_lengths()
+            combination.map_combination_to_lengths()
         if n_disks < 12:
             combination = Combination(lengths=combination, n_disks=n_disks)
 

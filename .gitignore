@@ -1,6 +1,7 @@
 # specific files
 .DS_Store
 results/
+playground/
 *txt
 *log
 test_*py
