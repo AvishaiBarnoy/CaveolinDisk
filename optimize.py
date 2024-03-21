@@ -297,6 +297,7 @@ def calc_k(L, R=7):
 
 def main(geometry_file, L_i, R, output_file, save=True, conserve_membrane=False, repulsion=False,
          optimizer='cg', n_steps=5000, energy_method='new'):
+    # TODO: change n_disk to be an input parameter so that if passed this is n_disks, otherwise precalculate
     n_disks = calc_n_disks(L=L_i, R=r_disk)
 
     k_edges = 100.0 # to keep proteins/disks rigid 

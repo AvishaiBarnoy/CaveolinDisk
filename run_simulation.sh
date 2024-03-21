@@ -43,7 +43,6 @@ shift 1
 
 # Check if no arguments are provided, then display usage
 if [ "$#" -eq 0 ]; then
-  echo $#
   usage
 fi
 
