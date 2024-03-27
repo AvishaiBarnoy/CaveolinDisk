@@ -52,6 +52,9 @@ class Combination:
         return self.lengths
 
     def modify_one_length(self, L, disk_radius=7) -> list:
+        """
+        converts from combination to actual lengths
+        """
         L *= 2
         disk_radius *= 2
         self.mod_length = []
