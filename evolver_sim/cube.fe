@@ -1,3 +1,9 @@
+/*
+Base for 3D simulation of caveolin
+1. start with regular dodecahedron
+2. 
+ */
+
 // cube.fe
 // Evolver data for cube of prescribed volume.
 
