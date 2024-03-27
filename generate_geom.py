@@ -25,13 +25,14 @@ half-distance: {L} nm
 estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm\n""")
 
     # Generate combinations
-    if n_disks >= 12:
+    if n_disks > 12:
         sys.stdout.write("""\n
 ############
 # WARNING! #
 ############
 This misses some combinations, e.g., for n=6 it misses [1,3,5] corresponding to lengths [2,2,2]
-The other method is good up to n=11, since it is computationally heavy.\n
+The other method is good up to n=12, since it is computationally heavy. For n=12 it is already slow, for n=17 it
+became impossible on my computer.
 \n""")
         combinations = Combinatorics(n_disks)
         raw_combinations = combinations.generate_combinations()
@@ -43,7 +44,7 @@ The other method is good up to n=11, since it is computationally heavy.\n
         # remove combinations using cyclic filter
         filtered_combinations = group_operations.cyclic_filter(raw_combinations, n_disks)
         sys.stdout.write(f"Filtred redundant combinations, now we only have {len(filtered_combinations)} combinations.\n")
-    elif n_disks < 12:
+    elif n_disks <= 12:
         sys.stdout.write("""############
 # WARNING! #
 ############
@@ -58,7 +59,7 @@ This method does not filter mirror combinations [1,2,3] and [3,2,1] and only wor
         if n_disks > 12:
             combination = Combination(combination, n_disks)
             combination.map_combination_to_lengths()
-        if n_disks < 12:
+        if n_disks <= 12:
             combination = Combination(lengths=combination, n_disks=n_disks)
 
         combination.modify_one_length(disk_radius=7, L=L)
@@ -69,6 +70,7 @@ This method does not filter mirror combinations [1,2,3] and [3,2,1] and only wor
 
         dn = n_disks - len(combination.lengths)
 
+        # TODO: implement choices for cli
         if distribute_excess_membrane == False:
             pass
 
@@ -112,6 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--conserve_membrane", action="store_true", help="decideds what to do with excess membrane\
                         generated when generating ΔN (combining adjacent proteins)")
     parser.add_argument("-N", "--N_disks", default=None, type=int, help="manual number of disks")
+    parser.add_argument("-L", default=None, type=int, help="half-distance between proteins in initial configuration")
     args = parser.parse_args()
 
     # distribute_membrane = args.conserve_membrane # uniform distribution

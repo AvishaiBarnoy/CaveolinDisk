@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
-from scipy.spatial import distance
+from scipy.spatial.distance import euclidean
 import sys
 import re
 import argparse
@@ -20,10 +20,10 @@ class GeometryOptimizer:
 
         # assumes initial geoemtry is close to optimal one
         if self.energy_method == "old":
-            def initiate_ideal_angles(geometry):
-                # TODO: move to energy calculation for energy_method!
+            def initiate_ideal_angles(geometry, R=7, h=2, a=0.7, depsilon=4, k=0.4e-19, kt=20e-3):
                 """takes initial geometry and initializes ideal angles list"""
-                h = 2; a = 0.7; depsilon = 4; k = 0.4e-19; kt = 20e-3; R = 7
+                # TODO: move to energy calculation for energy_method!
+                # TODO: fix R to be specific for edges
                 xi = np.sqrt(k/kt) * 1e9 # J / nm
                 f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
                 geometry = np.array(geometry).reshape((self.num_vertices, 2))
@@ -31,7 +31,7 @@ class GeometryOptimizer:
                 angle_lst = []
                 for i, _ in enumerate(geometry):
                     if i % 2 != 0:
-                        dist = distance.euclidean(cyclic_geometry[i], cyclic_geometry[i+1])
+                        dist = euclidean(cyclic_geometry[i], cyclic_geometry[i+1])
                         ideal_angle = np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(dist/xi))
                         angle_lst.append(ideal_angle)
                 return angle_lst
@@ -69,22 +69,40 @@ class GeometryOptimizer:
             # iterate over length and angles
             # for each length check two angles
             L_lst = self.calc_L_lst(vertices)
-            for i,_ in enumerate(L_lst):
-                energy += self.calc_new_energy(L=L_lst[i], phi=current_angles[i])
+            R_lst = [val / 2 for val in self.ideal_distances[0::2] for _ in range(2)]
 
             for i in range(self.num_vertices):
+                # TODO: change to % i and enumerate for better readability
+                prev_point = vertices[i - 1]
+                current_point = vertices[i]
+                if i == self.num_vertices - 1:
+                    next_point = vertices[0]
+                else:
+                    next_point = vertices[i + 1]
+
+                if i % 2 == 0:
+                    R_i = euclidean(next_point, current_point) / 2
+                    L_i = euclidean(prev_point, current_point) / 2
+                    energy += self.calc_new_energy(L=L_i, phi=current_angles[i], R=R_i)
+                if i % 2 != 0:
+                    R_i = euclidean(prev_point, current_point) / 2
+                    L_i = euclidean(next_point, current_point) / 2
+                    energy += self.calc_new_energy(L=L_i, phi=current_angles[i], R=R_i)
+
+            for i,_ in enumerate(L_lst):
+            # for i in range(self.num_vertices):
                 # TODO: use this logic for constraints and edge calculation, maybe refactor
                 next_vertex = (i + 1) % self.num_vertices
-                distance = np.linalg.norm(vertices[next_vertex] - vertices[i])
-                ideal_distance = self.ideal_distances[i]
+                protein_length = np.linalg.norm(vertices[next_vertex] - vertices[i])
+                ideal_distance = self.ideal_distances[i] # TODO: rename
 
                 if i % 2 == 0:
                     # constraint only on proteins/disks
-                    energy += self.k_edges * (distance - ideal_distance) ** 2
+                    energy += self.k_edges * (protein_length - ideal_distance) ** 2
 
             # constraint on total membrane, k_edges should be big
             total_membrane = self.calc_total_membrane_area(self.ideal_distances)
-            current_membrane = sum(L_lst[0::2])
+            current_membrane = sum(L_lst[0::2]) # no L_st/2 because we need full membrane area
             energy += self.k_edges * (current_membrane - total_membrane) ** 2
 
         elif self.energy_method == 'old':
@@ -130,7 +148,7 @@ class GeometryOptimizer:
                     ideal_distance = self.ideal_distances[i]
 
                     if i % 2 != 0:
-                        energy += self.elastic_energy(distance)
+                        energy += self.elastic_energy(distance/2)
 
             # sums energy price due to deviation from ideal angle
             for i in range(self.num_vertices):
@@ -204,7 +222,7 @@ class GeometryOptimizer:
         angle_lst = []
         for i, _ in enumerate(cyclic_geometry):
             if i % 2 != 0:
-                dist = distance.euclidean(cyclic_geometry[i], cyclic_geometry[i+1])
+                dist = euclidean(cyclic_geometry[i], cyclic_geometry[i+1])
                 ideal_angle = np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(dist/xi))
                 angle_lst.extend([ideal_angle, ideal_angle])
         return angle_lst
@@ -220,6 +238,7 @@ class GeometryOptimizer:
         """
         elastic energy depending on L
         """
+        # TODO: fix R for each vertex
         xi = np.sqrt(k/kt) * 1e9 # J / nm
         A = (h/a)**2 * depsilon/np.sqrt(k*kt/1e18) * 4.11e-21
         F = - A / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
@@ -238,6 +257,8 @@ class GeometryOptimizer:
         """where the magic happens"""
         result = minimize(self.calculate_energy, self.vertices, method=self.opt_method, options={'disp': True, 'maxiter': self.n_steps})
         optimized_vertices = result.x.reshape((-1, 2))
+        print("Finished optimizing")
+        # TODO: mv priniting out of main into here, maybe use an auxillary function for printing
         return optimized_vertices, result.fun
 
 # TODO: organize all these functions
@@ -250,7 +271,7 @@ def calculate_edges(points):
             next_point = points[0]
         else:
             next_point = points[i + 1]
-        dist = distance.euclidean(current_point, next_point)
+        dist = euclidean(current_point, next_point)
         distances.append(dist)
     return distances
 
@@ -268,24 +289,6 @@ def get_ideal_dist(file_path):
         sys.exit(1)
     return extracted_list
 
-def calc_ideal_angle(L, R=7, h=2, a=0.7, k=0.4e-19, kt=20e-3, depsilon=4):
-    # TODO: move into optimize
-    xi = np.sqrt(k/kt) * 1e9 # J / nm
-    f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
-    return np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
-
-def caveolin_radius(L, R=7,k=0.4e-19, kt=20e-3):
-    xi = np.sqrt(k/kt) * 1e9 # J / nm
-    phi = calc_ideal_angle(L=L, R=R)
-    R_c = (R+L*np.cos(np.pi-phi))/np.sin(np.pi-phi)
-    return R_c
-
-def calc_n_disks(L, R):
-    Rc = caveolin_radius(L=L, R=R)
-    circumference = 2*np.pi*Rc
-    n_disks = circumference/(2*R + 2*L)
-    return round(n_disks)
-
 def calc_k(L, R=7):
     h = 2 # nm
     a = 0.7 # nm
@@ -297,8 +300,6 @@ def calc_k(L, R=7):
 
 def main(geometry_file, L_i, R, output_file, save=True, conserve_membrane=False, repulsion=False,
          optimizer='cg', n_steps=5000, energy_method='new'):
-    # TODO: change n_disk to be an input parameter so that if passed this is n_disks, otherwise precalculate
-    n_disks = calc_n_disks(L=L_i, R=r_disk)
 
     k_edges = 100.0 # to keep proteins/disks rigid 
 
@@ -314,10 +315,8 @@ def main(geometry_file, L_i, R, output_file, save=True, conserve_membrane=False,
     sys.stdout.write(f"Initial configuration: {ideal_distances}\n")
 
     sys.stdout.write(f"""
-N proteins: {n_disks}
 Protein radius: {r_disk} nm
-Half-distance: {L} nm
-Estimated caveolin radius {(2*r_disk+L)*n_disks / (2 * np.pi)} nm
+Half-distance: {L_i} nm
 
 minimization method: {optimizer}
 energy calculation method: {energy_method}\n""")
@@ -371,6 +370,7 @@ angles areclose to ideal angle and in the new one they aren't, the methods use d
 
     r_disk = 7
     L = 2 # half-distance between proteins
+    # TODO: add option to get total_membrane as an argument 
 
     main(geometry_file=args.inputfile, L_i=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane,
          output_file=args.outputfile, repulsion=args.repulsion, n_steps=args.n_steps, optimizer=args.optimizer,

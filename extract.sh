@@ -6,12 +6,12 @@ mkdir analysis
 # empty target file
 > analysis/e_values.txt
 
-for i in dn*  # {0..7}
+for i in dn*
 do 
   cd $i
   cp ../$SCRIPT .
   pwd
-  python $SCRIPT 
+  python $SCRIPT -e new
   echo ""
   rm -f $SCRIPT 
   cd ..

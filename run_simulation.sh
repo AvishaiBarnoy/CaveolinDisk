@@ -59,12 +59,15 @@ if [ -z "$N" ]; then
   python generate_geom.py -c
 else
   # if N is provided pass intp generate_geom
-  python generate_geom.py -c -N $N
+  python generate_geom.py -c -N $N -L $L
 fi
 
 
 for i in dn*/geom_*/*log
 do
   OUTPUT_FILE=$(dirname "$i")/geom_opt.txt
-  python optimize.py -e new -s -i "$i" -o "$OUTPUT_FILE"
+  python optimize.py -e new -s -i "$i" -o "$OUTPUT_FILE" -n 25000 -opt cg 
+  python optimize.py -e new -s -i "$OUTPUT_FILE" -o "$OUTPUT_FILE" -n 500 -opt bfgs
 done
+
+./extract.sh

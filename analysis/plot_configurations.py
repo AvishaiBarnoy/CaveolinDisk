@@ -4,6 +4,14 @@ from scipy import ndimage
 import glob
 import os
 import re
+import argparse
+
+parser = argparse.ArgumentParser(
+    description="plot geometry of lowest energy geometry for each ΔN",
+    epilog="Not all those who physics are lost"
+)
+parser.add_argument('-s', '--silent', action="store_true", help="supresses plt.show()")
+args = parser.parse_args()
 
 def dist_cm(filename):
     coords = np.loadtxt(filename)
@@ -74,4 +82,6 @@ output_filename = f"{re.findall(pattern, cwd)[0]}_structures"
 
 plt.savefig(f"{output_filename}.svg")
 plt.savefig(f"{output_filename}.png")
-plt.show()
+
+if not args.silent:
+    plt.show()
