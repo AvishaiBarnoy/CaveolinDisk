@@ -109,7 +109,7 @@ albeit a little similar.""")
 
     L = 5
     R = 7
-    xi = 2
+    xi = 2 # TODO: explicit dependency on k, kt
 
     # data
     y = np.loadtxt("e_values.txt")
@@ -133,6 +133,8 @@ albeit a little similar.""")
 
     elif args.energy_method == 'new':
         L_min_lst = [0.003, 0.004, 0.0045, 0.005]
+        F_bind = [8, 9, 10, 11, 12, 13, 14]
+        F_bind = range(5, 16, 2)
         # load data
         filenames = sorted(glob.glob("dn[0-9][0-9].txt"))
         x = list(range(len(filenames)))
@@ -141,12 +143,19 @@ albeit a little similar.""")
         F_ref = calculate_new_energy(dn0_path)
         print(f"reference state (ΔN=0) energy: {round(F_ref,3)} kT")
         x = np.array(x)
-        for i,j in enumerate(L_min_lst):
+        # for i,j in enumerate(L_min_lst):
+        for i,j in enumerate(F_bind):
             dF = np.array([calculate_new_energy(filename) for filename in filenames]) - F_ref
-            print("dF", dF)
-            F_tot = dF + x * vdw_energy(L=j, R=7)
-            print("L_min:", j)
-            print("de:", x * vdw_energy(L=j, R=7), '\n')
+            # print("dF", dF)
+            # F_tot = dF + x * vdw_energy(L=j, R=7)
+            # print("L_min:", j)
+            # print("de:", x * vdw_energy(L=j, R=7), '\n')
+
+            k = 0.4e-19
+            kt = 20e-3
+            K = np.sqrt(k*kt) * 1e-9 / 4.11e-21 # kT/nm
+            F_tot = dF - x * F_bind[i]
+
             plt.plot(x, F_tot, ls='--', marker=markers[i], label=f"{j}")
 
     plt.ylabel(r'$F$', fontsize=15)

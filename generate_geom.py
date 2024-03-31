@@ -114,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--conserve_membrane", action="store_true", help="decideds what to do with excess membrane\
                         generated when generating ΔN (combining adjacent proteins)")
     parser.add_argument("-N", "--N_disks", default=None, type=int, help="manual number of disks")
-    parser.add_argument("-L", default=None, type=int, help="half-distance between proteins in initial configuration")
+    parser.add_argument("-L", default=None, type=float, help="half-distance between proteins in initial configuration")
     args = parser.parse_args()
 
     # distribute_membrane = args.conserve_membrane # uniform distribution
