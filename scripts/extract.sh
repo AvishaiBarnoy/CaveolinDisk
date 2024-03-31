@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SCRIPT=lowest_dn.py
-mkdir analysis
+mkdir -p analysis
 
 # empty target file
 > analysis/e_values.txt

@@ -4,7 +4,9 @@
 # 1. run generate_geom.py to create folders and initial geometry files.
 # 2. run this script that uses optimize.py
 
-# TODO: adjust this to give error if N not given, or if not given run with auto calculate N
+
+
+CAVEOLIN=`pwd`
 
 # default values for N and L, just to initialize them
 N=
@@ -52,8 +54,19 @@ if [ -z "$L" ]; then
   exit 1
 fi
 
+# make folder for results
+mkdir -p results
+
+# make folder inside results
+mkdir -p results/N"$N"/L"$L"
+cp -r scripts/* results/N"$N"/L"L"
+
+cd results/N"$N"
+
+# adjust scripts to use correct L value
 ./adjust_L.sh $L
 
+# generates initial geometries
 if [ -z "$N" ]; then
   # if N not provided auto calculate N
   python generate_geom.py -c
@@ -62,7 +75,7 @@ else
   python generate_geom.py -c -N $N -L $L
 fi
 
-
+# minimizes geometries, adjust this loop to add more/different minimization steps 
 for i in dn*/geom_*/*log
 do
   OUTPUT_FILE=$(dirname "$i")/geom_opt.txt
