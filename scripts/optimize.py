@@ -11,7 +11,6 @@ class GeometryOptimizer:
                  energy_method='new',
                  ideal_angles=[], repulsion=False, conserve_membrane=False, save=True):
         # TODO: decide which parameter are input and which are initialized inside
-        # TODO: work with numpy arrays instead of lists
         self.vertices = vertices
         self.num_vertices = len(self.vertices)//2
         self.ideal_distances = ideal_distances
@@ -23,7 +22,6 @@ class GeometryOptimizer:
             def initiate_ideal_angles(geometry, R=7, h=2, a=0.7, depsilon=4, k=0.4e-19, kt=20e-3):
                 """takes initial geometry and initializes ideal angles list"""
                 # TODO: move to energy calculation for energy_method!
-                # TODO: fix R to be specific for edges
                 xi = np.sqrt(k/kt) * 1e9 # J / nm
                 f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
                 geometry = np.array(geometry).reshape((self.num_vertices, 2))
@@ -237,7 +235,6 @@ class GeometryOptimizer:
         """
         elastic energy depending on L
         """
-        # TODO: fix R for each vertex
         xi = np.sqrt(k/kt) * 1e9 # J / nm
         A = (h/a)**2 * depsilon/np.sqrt(k*kt/1e18) * 4.11e-21
         F = - A / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
@@ -256,6 +253,7 @@ class GeometryOptimizer:
         """where the magic happens"""
         result = minimize(self.calculate_energy, self.vertices, method=self.opt_method, options={'disp': True, 'maxiter': self.n_steps})
         optimized_vertices = result.x.reshape((-1, 2))
+        sys.stdout.write(f"final angles:\n {self.calculate_angles(optimized_vertices)}\n")
         print("Finished optimizing")
         # TODO: mv priniting out of main into here, maybe use an auxillary function for printing
         return optimized_vertices, result.fun
@@ -326,15 +324,11 @@ distance between proteins is allowed to change but total membrane is conserved\n
         sys.stdout.write("""Membrane treatment:
 total membrane is conserved but excesss membrane is distributed uniformly between proteins.\n""")
 
-    # TODO: why is initial_geometry flattened and then reshaped? -> input into scipy.minimize should be flat but rather than that...
     optimizer = GeometryOptimizer(vertices=initial_geometry.flatten(), ideal_distances=ideal_distances,
                                   optimizer=optimizer, n_steps=n_steps, energy_method='new',
                                   k_edges=k_edges, k_angle=k_angle, repulsion=repulsion, conserve_membrane=conserve_membrane)
     optimized_vertices, _ = optimizer.optimize_geometry() # _ is final energy but is unassigned 'cause it's unused
     optimized_vertices = optimized_vertices.reshape((len(initial_geometry), 2))
-
-    # TODO: inisde optimize print angles after minimize is called, maybe in optimize_geometry()
-    # sys.stdout.write(f"final angles:\n {calculate_angles(optimized_vertices)}\n")
 
     # important to see that edges don't break
     final_edges = calculate_edges(optimized_vertices)
