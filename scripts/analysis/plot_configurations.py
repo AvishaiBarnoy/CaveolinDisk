@@ -80,7 +80,7 @@ pattern = r"L[0-9]"
 cwd = os.getcwd()
 output_filename = f"{re.findall(pattern, cwd)[0]}_structures"
 
-plt.savefig(f"{output_filename}.svg")
+# plt.savefig(f"{output_filename}.svg")
 plt.savefig(f"{output_filename}.png")
 
 if not args.silent:

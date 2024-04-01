@@ -30,7 +30,7 @@ plt.grid()
 # saving 
 output_filename = "lowest_dn"
 
-plt.savefig(f"{output_filename}.svg")
+# plt.savefig(f"{output_filename}.svg")
 plt.savefig(f"{output_filename}.png")
 
 plt.show()

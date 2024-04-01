@@ -211,11 +211,10 @@ class GeometryOptimizer:
             angles.append(angle)
         return np.array(angles)
 
-    def update_ideal_angles(self, geometry):
+    def update_ideal_angles(self, geometry, R=7, k=0.4e-19, kt=20e-3, h=2, a=0.7, depsilon=4):
         """
         updates ideal angles from geometry, since id_angle is a function of L
         """
-        h = 2; a = 0.7; depsilon = 4; k = 0.4e-19; kt = 20e-3; R = 7
         xi = np.sqrt(k/kt) * 1e9 # J / nm
         f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
         cyclic_geometry = np.vstack([geometry, geometry[0]])
@@ -289,11 +288,10 @@ def get_ideal_dist(file_path):
         sys.exit(1)
     return extracted_list
 
-def calc_k(L, R=7):
-    h = 2 # nm
-    a = 0.7 # nm
-    k = 0.4e-19 # J
-    kt = 20e-3 # N/m
+def calc_k(L, R=7, k=0.4e-19, kt=20e-3, h=2, a=0.7):
+    """
+    calculates spring constant for quadratic approximation for deviation angle from ideal angle
+    """
     xi = np.sqrt(k/kt) * 1e9 # J / nm
     K_const = np.sqrt(k*kt/1e18) * (2/np.tanh(R/xi) + 1/np.tanh(L/xi))*1/np.tanh(L/xi) / (1/np.tanh(R/xi) + 1/np.tanh(L/xi))
     return K_const / 4.11e-21

@@ -6,26 +6,16 @@ import argparse
 from scipy.spatial.distance import euclidean
 import glob
 
-def calc_k(L, R=7, xi=2):
-    h = 2 # nm
-    a = 0.7 # nm
-    k = 0.8e-19 # J
-    kt = 30e-3 # N/m
+def calc_k(L, R=7, k=0.4e-19, kt=20e-3, h=2, a=0.7):
+    xi = np.sqrt(k/kt) * 1e9 # J / nm
     K_const = np.sqrt(k*kt/1e18) * (2/np.tanh(R/xi) + 1/np.tanh(L/xi))*1/np.tanh(L/xi) / (1/np.tanh(R/xi) + 1/np.tanh(L/xi))
     return K_const / 4.11e-21
 
-def calc_F(L, R=7, xi=2):
-    h = 2 # nm
-    a = 0.7 # nm
-    k = 0.8e-19 # J
-    kt = 30e-3 # N/m
-    depsilon = 4 # kT/nm
+def calc_F(L, R=7, k=0.4e-19, kt=20e-3, h=2, a=0.7, depsilon=4):
+    xi = np.sqrt(k/kt) * 1e9 # J / nm
     A = (h/a)**2 * depsilon/np.sqrt(k*kt/1e18) * 4.11e-21
 
-    # TODO: explicit B
-    # TODO: explicit xi
-
-    B = 1e-3
+    B = 1 / 270 * (A * h)/ xi ** 2 * 1 / np.sqrt(R/xi)
 
     F = - A / (2/np.tanh(R/xi) + 1/np.tanh(L/xi)) - B /(L/xi)**(1.5)
     return F
@@ -82,13 +72,11 @@ def new_energy(L, phi, R, k=0.4e-19, kt=20e-3, h=2, a=0.7, depsilon=4):
     F = f1 - f2 - f3
     return F
 
-def vdw_energy(L, R):
-    h = 2 # nm
-    a = 0.7 # nm
-    k = 0.8e-19 # J
-    kt = 30e-3 # N/m
-    depsilon = 4 # kT/nm
-    A = 1 # kT Hamaker constant
+def vdw_energy(L, R, k=0.4e-19, kt=20e-3, h=2, a=0.7, depsilon=4, A=1):
+    """
+    calculates VdW interaction between proteins.
+    depracted: changed to bond energy, not distance dependent
+    """
     xi = np.sqrt(k/kt) * 1e9 # J / nm
 
     # B = 1e-3
@@ -109,7 +97,6 @@ albeit a little similar.""")
 
     L = 5
     R = 7
-    xi = 2 # TODO: explicit dependency on k, kt
 
     # data
     y = np.loadtxt("e_values.txt")
@@ -123,7 +110,7 @@ albeit a little similar.""")
     L_min_lst = [0.003, 0.005, 0.01, 0.015, 0.05]
 
     if args.energy_method == 'old':
-        k = calc_k(L=L, R=R, xi=xi)
+        k = calc_k(L=L, R=R)
         F = calc_F(L=L, R=R)
 
         # plot
@@ -173,7 +160,7 @@ albeit a little similar.""")
         cwd = os.getcwd()
         output_filename = f"{re.findall(pattern, cwd)[0]}_energy"
 
-        plt.savefig(f"{output_filename}.svg")
+        # plt.savefig(f"{output_filename}.svg")
         plt.savefig(f"{output_filename}.png")
 
     if not args.silent:

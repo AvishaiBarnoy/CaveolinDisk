@@ -173,23 +173,20 @@ class group_operations:
             unique.extend(sub_uniques)
         return unique
 
-def calc_ideal_angle(L, R=7, xi=2):
+def calc_ideal_angle(L, R=7, k=0.4e-19, kt=20e-3, h=2, a=0.7):
     '''
     f_param = Delta_epsilon / sqrt(k*k_t) * h / a
     D_epsilon - energy diff of lipids on-top of protein and in membrane ~ 0.3
     h - monolayer thickness ~ 2 nm, a - lipid length ~ 0.7 nm
     k - monolayer rigidiy ~ 1e-9 J, k_t - tilt modulus ~ 30 mJ/m
     '''
-    h = 2 # nm
-    a = 0.7 # nm
-    k = 0.4e-19 # J
-    kt = 20e-3 # N/m
+    xi = np.sqrt(k/kt) * 1e9 # J / nm
     depsilon = 4 # kT/nm
     f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
     return np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
 
-def caveolin_radius(L, R=7, xi=2):
-    phi = calc_ideal_angle(L=L, R=R)
+def caveolin_radius(L, R=7, k=0.4e-19, kt=20e-3):
+    phi = calc_ideal_angle(L=L, R=R, k=k, kt=kt)
     R_c = (R+L*np.cos(np.pi-phi))/np.sin(np.pi-phi)
     return R_c
 
@@ -202,8 +199,8 @@ def calc_n_disks(L, R):
 if __name__ == "__main__":
     R = 7
     L = 2
-    xi = np.sqrt(k/kt) * 1e9 # J / nm
-    phi_s = calculate_phi_star(L=L, R=R, xi=xi)
+
+    phi_s = calc_ideal_angle(L=L, R=R)
     print("phi*:", phi_s)
     Rc = caveolin_radius(L=L, R=R, xi=xi)
     print("Rc:", Rc)

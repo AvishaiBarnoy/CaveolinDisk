@@ -110,18 +110,13 @@ def find_lowest_value_directory(root_dir, k, ideal_angle, energy_method='old'):
     return lowest_value, lowest_dir
 
 
-def calc_ideal_angle(L, R=7):
+def calc_ideal_angle(L, R=7, k=0.4e-19, kt=20e-3, h=2, a=0.7, depsilon=4):
     '''
     f_param = Delta_epsilon / sqrt(k*k_t) * h / a
     D_epsilon - energy diff of lipids on-top of protein and in membrane ~ 0.3
     h - monolayer thickness ~ 2 nm, a - lipid length ~ 0.7 nm
     k - monolayer rigidiy ~ 1e-9 J, k_t - tilt modulus ~ 30 mJ/m
     '''
-    h = 2 # nm
-    a = 0.7 # nm
-    k = 0.4e-19 # J
-    kt = 20e-3 # N/m
-    depsilon = 4 # kT/nm
     xi = np.sqrt(k/kt) * 1e9 # J / nm
     f_param = h/a * depsilon * 1/np.sqrt(k*kt/1e18) * 4.11e-21
     return np.pi - f_param * 1 / (2/np.tanh(R/xi) + 1/np.tanh(L/xi))
