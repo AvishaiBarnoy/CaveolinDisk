@@ -9,8 +9,10 @@ class GeometryOptimizer:
     def __init__(self, vertices, ideal_distances, k_edges, k_angle,
                  optimizer, n_steps=5000,
                  energy_method='new',
-                 ideal_angles=[], repulsion=False, conserve_membrane=False, save=True):
+                 ideal_angles=[], repulsion=False, conserve_membrane=False, save=True, L=None):
         # TODO: decide which parameter are input and which are initialized inside
+
+        # TODO: change vertices to not be flattend, only faltten when enter minimize
         self.vertices = vertices
         self.num_vertices = len(self.vertices)//2
         self.ideal_distances = ideal_distances
@@ -43,11 +45,16 @@ class GeometryOptimizer:
         self.k_edges = k_edges
         self.k_angle = k_angle
         self.repulsion = repulsion
+        self.num_vertices = len(self.vertices)//2
         self.conserve_membrane = conserve_membrane
         self.save = save
 
+        if not L:
+            # TODO: placeholder to use this
+            self.L = L
+            # self.num_vertices = len(self.vertices)//2
+            self.total_membrane = L * self.num_vertices
 
-        # TODO: add optimization plan -> mv todo to input file
         self.opt_method = optimizer # TODO: implement more methods, currently only: cg, bfgs, l-bfgs-b
         self.n_steps = n_steps
 
@@ -358,6 +365,7 @@ if __name__ == "__main__":
     options.add_argument("-n", "--n_steps", type=int, default="25000", help="N steps before optimization stops")
     options.add_argument('-e', "--energy_method", type=str, choices=['old', 'new'], help="""old assumes that in initial geometry the
 angles areclose to ideal angle and in the new one they aren't, the methods use different energy functions albeit a little similar.""")
+    options.add_argument("-L", type=float, help="half-distance")
     args = parser.parse_args()
 
     r_disk = 7
