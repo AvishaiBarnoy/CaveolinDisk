@@ -365,6 +365,7 @@ if __name__ == "__main__":
     options.add_argument("-n", "--n_steps", type=int, default="25000", help="N steps before optimization stops")
     options.add_argument('-e', "--energy_method", type=str, choices=['old', 'new'], help="""old assumes that in initial geometry the
 angles areclose to ideal angle and in the new one they aren't, the methods use different energy functions albeit a little similar.""")
+    options.add_argument("-C", "--cholesterol", action="store_true", help="accounts for intrinsic curvature due to cholesterol")
     options.add_argument("-L", type=float, help="half-distance")
     args = parser.parse_args()
 
