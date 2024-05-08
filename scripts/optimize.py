@@ -9,7 +9,8 @@ class GeometryOptimizer:
     def __init__(self, vertices, ideal_distances, k_edges, k_angle,
                  optimizer, n_steps=5000,
                  energy_method='new',
-                 ideal_angles=[], repulsion=False, conserve_membrane=False, save=True, L=None):
+                 ideal_angles=[], repulsion=False, conserve_membrane=False, save=True, L=None,
+                 cholesterol=0.3):
         # TODO: decide which parameter are input and which are initialized inside
 
         # TODO: change vertices to not be flattend, only faltten when enter minimize
@@ -20,6 +21,7 @@ class GeometryOptimizer:
         self.energy_method = energy_method.lower() # TODO: implement in the future use choices
 
         # assumes initial geoemtry is close to optimal one
+        # TODO: remove in future versions
         if self.energy_method == "old":
             def initiate_ideal_angles(geometry, R=7, h=2, a=0.7, depsilon=4, k=0.4e-19, kt=20e-3):
                 """takes initial geometry and initializes ideal angles list"""
@@ -44,7 +46,8 @@ class GeometryOptimizer:
 
         self.k_edges = k_edges
         self.k_angle = k_angle
-        self.repulsion = repulsion
+        self.repulsion = repulsion # check if this is needed
+        self.cholesterol = cholesterol
         self.num_vertices = len(self.vertices)//2
         self.conserve_membrane = conserve_membrane
         self.save = save
@@ -163,6 +166,9 @@ class GeometryOptimizer:
                 # TODO: call from current_angles array
                 angle = self.calculate_angle(vertices[prev_vertex], vertices[i], vertices[next_vertex])
                 energy += self.k_angle * (angle - self.ideal_angles[i]) ** 2
+        if self.energy_method == "cholesterol":
+            print("not implemented yet")
+            break
 
         return energy
 
@@ -363,9 +369,10 @@ if __name__ == "__main__":
     options.add_argument("-r", "--repulsion", action="store_true", help="minimizes with protein repulsion")
     options.add_argument("-opt", "--optimizer", choices=['cg', 'bfgs', 'l-bfgs-b'], default="cg", help="which optimizer to use")
     options.add_argument("-n", "--n_steps", type=int, default="25000", help="N steps before optimization stops")
-    options.add_argument('-e', "--energy_method", type=str, choices=['old', 'new'], help="""old assumes that in initial geometry the
+    options.add_argument('-e', "--energy_method", type=str, choices=['old', 'new', 'cholesterol'], help="""old assumes that in initial geometry the
 angles areclose to ideal angle and in the new one they aren't, the methods use different energy functions albeit a little similar.""")
-    options.add_argument("-C", "--cholesterol", action="store_true", help="accounts for intrinsic curvature due to cholesterol")
+    # TODO: implement cholesterol
+    options.add_argument("-C", "--cholesterol", type=float, default=0.3, help="accounts for intrinsic curvature due to cholesterol")
     options.add_argument("-L", type=float, help="half-distance")
     args = parser.parse_args()
 
@@ -374,7 +381,7 @@ angles areclose to ideal angle and in the new one they aren't, the methods use d
     # TODO: add option to get total_membrane as an argument 
 
     main(geometry_file=args.inputfile, L_i=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane,
-         output_file=args.outputfile, repulsion=args.repulsion, n_steps=args.n_steps, optimizer=args.optimizer,
+         cholesterol=args.cholesterol, output_file=args.outputfile, repulsion=args.repulsion, n_steps=args.n_steps, optimizer=args.optimizer,
          energy_method=args.energy_method)
 
     sys.exit(0)
