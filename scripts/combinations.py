@@ -83,7 +83,6 @@ class Combination:
 
         if min_radius > max_radius:
             return []
-            raise ValueError("Segments are too long to fit in a circle")
 
         x_0 = (min_radius + max_radius) / 2
         d_0 = ((max_radius - min_radius) / 2) * 0.9
@@ -202,7 +201,7 @@ if __name__ == "__main__":
 
     phi_s = calc_ideal_angle(L=L, R=R)
     print("phi*:", phi_s)
-    Rc = caveolin_radius(L=L, R=R, xi=xi)
+    Rc = caveolin_radius(L=L, R=R)
     print("Rc:", Rc)
     n_disks = calc_n_disks(L=L, R=R)
     print(n_disks, round(n_disks))

@@ -10,7 +10,7 @@ class GeometryOptimizer:
                  optimizer, n_steps=5000,
                  energy_method='new',
                  ideal_angles=[], repulsion=False, conserve_membrane=False, save=True, L=None,
-                 cholesterol=0.3):
+                 c0=0.3):
         # TODO: decide which parameter are input and which are initialized inside
 
         # TODO: change vertices to not be flattend, only faltten when enter minimize
@@ -47,16 +47,16 @@ class GeometryOptimizer:
         self.k_edges = k_edges
         self.k_angle = k_angle
         self.repulsion = repulsion # check if this is needed
-        self.cholesterol = cholesterol
+        self.c0 = c0 # cholesterol concentration in reservoir 
         self.num_vertices = len(self.vertices)//2
         self.conserve_membrane = conserve_membrane
         self.save = save
 
         if not L:
             # TODO: placeholder to use this
-            self.L = L
+            self.L = 2
             # self.num_vertices = len(self.vertices)//2
-            self.total_membrane = L * self.num_vertices
+            self.total_membrane = self.L * self.num_vertices
 
         self.opt_method = optimizer # TODO: implement more methods, currently only: cg, bfgs, l-bfgs-b
         self.n_steps = n_steps
@@ -77,7 +77,7 @@ class GeometryOptimizer:
             # iterate over length and angles
             # for each length check two angles
             L_lst = self.calc_L_lst(vertices)
-            R_lst = [val / 2 for val in self.ideal_distances[0::2] for _ in range(2)]
+            # R_lst = [val / 2 for val in self.ideal_distances[0::2] for _ in range(2)]
 
             for i in range(self.num_vertices):
                 # TODO: change to % i and enumerate for better readability
@@ -113,8 +113,50 @@ class GeometryOptimizer:
             current_membrane = sum(L_lst[0::2]) # no L_st/2 because we need full membrane area
             energy += self.k_edges * (current_membrane - total_membrane) ** 2
 
+        elif self.energy_method == "cholesterol":
+            # iterate over length and angles
+            # for each length check two angles
+            L_lst = self.calc_L_lst(vertices)
+            # R_lst = [val / 2 for val in self.ideal_distances[0::2] for _ in range(2)]
+
+            for i in range(self.num_vertices):
+                # TODO: change to % i and enumerate for better readability
+                prev_point = vertices[i - 1]
+                current_point = vertices[i]
+                if i == self.num_vertices - 1:
+                    next_point = vertices[0]
+                else:
+                    next_point = vertices[i + 1]
+
+                if i % 2 == 0:
+                    R_i = euclidean(next_point, current_point) / 2
+                    L_i = euclidean(prev_point, current_point) / 2
+                    # TODO: can sum switch in energy method here and not complete same block of code
+                    energy += self.calc_cholesterol_energy(L=L_i, phi=current_angles[i], R=R_i)
+                if i % 2 != 0:
+                    R_i = euclidean(prev_point, current_point) / 2
+                    L_i = euclidean(next_point, current_point) / 2
+                    # TODO: can sum switch in energy method here and not complete same block of code
+                    energy += self.calc_cholesterol_energy(L=L_i, phi=current_angles[i], R=R_i)
+
+            for i,_ in enumerate(L_lst):
+            # for i in range(self.num_vertices):
+                # TODO: use this logic for constraints and edge calculation, maybe refactor
+                next_vertex = (i + 1) % self.num_vertices
+                protein_length = np.linalg.norm(vertices[next_vertex] - vertices[i])
+                ideal_distance = self.ideal_distances[i] # TODO: rename
+
+                if i % 2 == 0:
+                    # constraint only on proteins/disks
+                    energy += self.k_edges * (protein_length - ideal_distance) ** 2
+
+            # constraint on total membrane, k_edges should be big
+            total_membrane = self.calc_total_membrane_area(self.ideal_distances)
+            current_membrane = sum(L_lst[0::2]) # no L_st/2 because we need full membrane area
+            energy += self.k_edges * (current_membrane - total_membrane) ** 2
+
         elif self.energy_method == 'old':
-            if selfconserve_membrane == False:
+            if self.conserve_membrane == False:
                 # conserve_membrane name is misleading since membrane might be conserved (depending
                 # on the options in generate_geom.py) it's just that distance between proteins/disks
                 # is not allowed to change. # TODO: change conserve_membrane name
@@ -166,9 +208,6 @@ class GeometryOptimizer:
                 # TODO: call from current_angles array
                 angle = self.calculate_angle(vertices[prev_vertex], vertices[i], vertices[next_vertex])
                 energy += self.k_angle * (angle - self.ideal_angles[i]) ** 2
-        if self.energy_method == "cholesterol":
-            print("not implemented yet")
-            break
 
         return energy
 
@@ -202,6 +241,28 @@ class GeometryOptimizer:
         f3 = 0.5 / (r + l) * e**2 / K
 
         F = f1 - f2 - f3
+        return F
+
+    def calc_cholesterol_energy(self, L, phi, zeta=1/3, c0=0.3, R=7, k=0.4e-19, kt=20e-3, h=2, a=0.7, depsilon=4):
+        """
+        energy calculation for each L and phi
+        """
+        # constants
+        xi = np.sqrt(k/kt) * 1e9 # J / nm
+        K = np.sqrt(k*kt) * 1e-9 / 4.11e-21 # kT/nm
+        e = h/a * depsilon # kT
+
+        # in this forumlation l, r are defined as the parameter inside the hyperbolic functions and not the functions themselves 
+        l = L/xi
+        rho = R/xi
+
+        # convert phi according to convention
+        phi = np.pi - phi
+
+        Ein =   K * (1/np.tanh(rho) - 0.5 * k/4.11e-21 * zeta**2 * a*c0*(1-c0) * (rho + np.sinh(rho)*np.cosh(rho))/(np.sinh(rho)**2))
+        Eout =  K * (1/np.tanh(l)   - 0.5 * k/4.11e-21 * zeta**2 * a*c0*(1-c0) * (l + np.sinh(l)*np.cosh(l))/(np.sinh(l)**2))
+
+        F = (2*Ein+Eout)/(2*Ein+2*Eout)*Eout*phi**2 - Eout/(Ein+Eout)*e*phi - e**2 / (2*Ein+2*Eout)
         return F
 
     def calculate_angles(self, points):
@@ -308,8 +369,8 @@ def calc_k(L, R=7, k=0.4e-19, kt=20e-3, h=2, a=0.7):
     return K_const / 4.11e-21
 
 def main(geometry_file, L_i, R, output_file, save=True, conserve_membrane=False, repulsion=False,
-         optimizer='cg', n_steps=5000, energy_method='new'):
-
+         optimizer='cg', n_steps=5000, energy_method='new', cholesterol=0.3):
+    # TODO: L_i is not used!
     k_edges = 100.0 # to keep proteins/disks rigid 
 
     if repulsion:
@@ -365,20 +426,24 @@ if __name__ == "__main__":
     io.add_argument("-s", "--save", action="store_true", help="default is to not save final geometry")
 
     options = parser.add_argument_group("optimization options")
+    # TODO: change conserve_membrane so there are four scenarios:
+    #           1. conserved and initial geometry membrane equals conserved membrane
+    #           2. don't conserve and initial geometry membrane equals conserved membrane
+    #           3. conserved and initial geoemtry membrane isn't equal conserved membrane
+    #           4. don't conserve and initial geometry membrane isn't equals conserved membrane
     options.add_argument("-c", "--conserve_membrane", action="store_true", help="conserve membrane and allow distance between proteins to change")
     options.add_argument("-r", "--repulsion", action="store_true", help="minimizes with protein repulsion")
-    options.add_argument("-opt", "--optimizer", choices=['cg', 'bfgs', 'l-bfgs-b'], default="cg", help="which optimizer to use")
+    options.add_argument("-opt", "--optimizer", choices=['cg', 'bfgs', 'l-bfgs-b'], default="cg", help="which optimizer to use, default: conjugate gradient")
     options.add_argument("-n", "--n_steps", type=int, default="25000", help="N steps before optimization stops")
-    options.add_argument('-e', "--energy_method", type=str, choices=['old', 'new', 'cholesterol'], help="""old assumes that in initial geometry the
-angles areclose to ideal angle and in the new one they aren't, the methods use different energy functions albeit a little similar.""")
-    # TODO: implement cholesterol
-    options.add_argument("-C", "--cholesterol", type=float, default=0.3, help="accounts for intrinsic curvature due to cholesterol")
+    options.add_argument('-e', "--energy_method", type=str, choices=['old', 'new', 'cholesterol'], default="new", help="""old assumes that in initial geometry the angles areclose to ideal angle and in the new one they aren't, the methods use different energy functions albeit a little similar.
+default: new energy method""")
+    options.add_argument("-C", "--cholesterol", type=float, default=0.3, help="cholesterol concentration in reservoir, default: 0.3")
     options.add_argument("-L", type=float, help="half-distance")
     args = parser.parse_args()
 
     r_disk = 7
     L = 2 # half-distance between proteins
-    # TODO: add option to get total_membrane as an argument 
+    # TODO: calculate total membrane from initial L
 
     main(geometry_file=args.inputfile, L_i=L, R=r_disk, save=args.save, conserve_membrane=args.conserve_membrane,
          cholesterol=args.cholesterol, output_file=args.outputfile, repulsion=args.repulsion, n_steps=args.n_steps, optimizer=args.optimizer,

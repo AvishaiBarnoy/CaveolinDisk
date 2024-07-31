@@ -11,24 +11,30 @@ CAVEOLIN=`pwd`
 # default values for N and L, just to initialize them
 N=
 L=
+c=0.3
 
 # Function to display script usage
+# TODO: add energy_method option 
 usage() {
   echo "Usage: $(basename "$0") [-N value] [-L value] [-h]"
   echo "  -N    Specify value for N, number of proteins"
   echo "  -L    Specify value for L, initial membrane between proteins"
+  echo "  -c    Specify value for cholesterol concentration in reservoir, c0"
   echo "  -h    Display this help message"
   exit 1
 }
 
 # Parse command line options
-while getopts "N:L:h" opt; do
+while getopts "N:L:c:h" opt; do
   case ${opt} in
     N )
       N=$OPTARG
       ;;
     L )
       L=$OPTARG
+      ;;
+    c )
+      c=$OPTARG
       ;;
     h )
       usage
@@ -54,14 +60,11 @@ if [ -z "$L" ]; then
   exit 1
 fi
 
-# make folder for results
-mkdir -p results
-
 # make folder inside results
-mkdir -p results/N"$N"/L"$L"
-cp -r scripts/* results/N"$N"/L"L"
+mkdir -p N"$N"/L"$L"
+cp -r scripts/* N"$N"/L"$L"
 
-cd results/N"$N"
+cd N"$N"/L"$L"
 
 # adjust scripts to use correct L value
 ./adjust_L.sh $L
@@ -79,8 +82,14 @@ fi
 for i in dn*/geom_*/*log
 do
   OUTPUT_FILE=$(dirname "$i")/geom_opt.txt
-  python optimize.py -e new -s -i "$i" -o "$OUTPUT_FILE" -n 25000 -opt cg 
-  python optimize.py -e new -s -i "$OUTPUT_FILE" -o "$OUTPUT_FILE" -n 500 -opt bfgs
+  python optimize.py -e cholesterol -s -i "$i" -o "$OUTPUT_FILE" -n 25000 -opt cg -C $c 
+  python optimize.py -e cholesterol -s -i "$OUTPUT_FILE" -o "$OUTPUT_FILE" -n 500 -opt bfgs -C $c
 done
 
 ./extract.sh
+
+echo "Finished calculations."
+echo "simulation parameters:"
+echo "  L = $L"
+echo "  N = $N"
+echo "  c = $c"

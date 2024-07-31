@@ -8,9 +8,6 @@ import os
 from tqdm import tqdm
 import argparse
 
-# TODO: add option to not redistribute excess membrane and let it relax through optimization
-#       trickier and might explode
-
 def main(r_disk, L, distribute_excess_membrane=0, N=None):
 
     if N:
@@ -70,19 +67,12 @@ This method does not filter mirror combinations [1,2,3] and [3,2,1] and only wor
 
         dn = n_disks - len(combination.lengths)
 
-        # TODO: implement choices for cli
         if distribute_excess_membrane == False:
             pass
 
         elif distribute_excess_membrane == True:
             membrane_excess = L*2 + L*2/(n_disks - dn) * dn
             combination.mod_length = [membrane_excess if length == L*2 else length for length in combination.mod_length]
-
-        elif distribute_excess_membrane == 2:
-            sys.stdout.write("NON UNIFORM DISTIBUTION IS NOT IMPLEMENTED YET")
-            sys.stdout.write("currently implemented in the optimization level but not in the initial conditions level")
-            sys.stdout.write("exiting program without generating geometries")
-            sys.exit(1)
 
         points = np.array(combination.calculate_circle_points())
 
@@ -110,14 +100,12 @@ if __name__ == "__main__":
         epilog="Not all those who physics are lost"
     )
 
-    # TODO: change to choices and 1,2,3 and put explanations in help
     parser.add_argument("-c", "--conserve_membrane", action="store_true", help="decideds what to do with excess membrane\
-                        generated when generating ΔN (combining adjacent proteins)")
+                        generated upon disks combining (i.e., when generating ΔN)")
     parser.add_argument("-N", "--N_disks", default=None, type=int, help="manual number of disks")
     parser.add_argument("-L", default=None, type=float, help="half-distance between proteins in initial configuration")
     args = parser.parse_args()
 
-    # distribute_membrane = args.conserve_membrane # uniform distribution
     r_disk = 7
     L = 1
     main(r_disk, L, distribute_excess_membrane=args.conserve_membrane, N=args.N_disks)
